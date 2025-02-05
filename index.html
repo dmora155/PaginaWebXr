@@ -108,19 +108,21 @@ function createScene() {
     flower = gltf.scene;
 
     // 📌 Evento de selección: Colocar un objeto anclado
-    xrSession.addEventListener("select", (event) => {
+    xrSession.addEventListener("select", async (event) => {
       if (reticle && reticle.visible) {
         const clone = flower.clone();
         clone.position.copy(reticle.position);
         scene.add(clone);
 
-        // Crear un ancla en la posición seleccionada
-        const anchorPose = new XRRigidTransform(reticle.position);
-        event.frame.createAnchor(anchorPose).then((anchor) => {
+        // Crear un ancla en la posición seleccionada (de forma segura)
+        try {
+          const anchorPose = new XRRigidTransform(reticle.position);
+          const anchor = await event.frame.createAnchor(anchorPose);
           anchors.push({ anchor, object: clone });
-        }).catch((err) => console.error("❌ Error al crear anclaje:", err));
-
-        console.log("🌻 Objeto anclado en:", reticle.position);
+          console.log("🌻 Objeto anclado en:", reticle.position);
+        } catch (err) {
+          console.error("❌ Error al crear anclaje:", err);
+        }
       }
     });
   });
