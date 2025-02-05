@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebXR Hit Test with Anchors</title>
+  <title>WebXR Hit Test (Sin Anclajes)</title>
 
   <!-- three.js -->
   <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
@@ -35,7 +35,6 @@ let scene, camera, renderer;
 let xrSession = null;
 let xrRefSpace = null;
 let hitTestSource = null;
-let anchors = [];
 let reticle = null;
 
 const flowerUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf";
@@ -49,7 +48,7 @@ document.getElementById("enter-ar").addEventListener("click", async () => {
   }
 
   console.log("✅ WebXR Supported. Requesting session...");
-  xrSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test", "anchors"] });
+  xrSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test"] });
 
   // Crear la escena 3D con Three.js
   createScene();
@@ -100,6 +99,7 @@ function createScene() {
     reticle = gltf.scene;
     reticle.visible = false;
     scene.add(reticle);
+    console.log("✅ Retícula cargada.");
   });
 
   // Cargar el modelo 3D (flor)
@@ -107,22 +107,13 @@ function createScene() {
   loader.load(flowerUrl, (gltf) => {
     flower = gltf.scene;
 
-    // 📌 Evento de selección: Colocar un objeto anclado
-    xrSession.addEventListener("select", async (event) => {
+    // 📌 Evento de selección: Colocar un objeto (Sin anclajes)
+    xrSession.addEventListener("select", () => {
       if (reticle && reticle.visible) {
         const clone = flower.clone();
         clone.position.copy(reticle.position);
         scene.add(clone);
-
-        // Crear un ancla en la posición seleccionada (de forma segura)
-        try {
-          const anchorPose = new XRRigidTransform(reticle.position);
-          const anchor = await event.frame.createAnchor(anchorPose);
-          anchors.push({ anchor, object: clone });
-          console.log("🌻 Objeto anclado en:", reticle.position);
-        } catch (err) {
-          console.error("❌ Error al crear anclaje:", err);
-        }
+        console.log("🌻 Objeto colocado en:", reticle.position);
       }
     });
   });
@@ -157,19 +148,11 @@ function onXRFrame(time, frame) {
       reticle.visible = true;
       reticle.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
       reticle.updateMatrixWorld(true);
+      console.log("🎯 Retícula detectada en:", hitPose.transform.position);
     } else {
       reticle.visible = false;
     }
   }
-
-  // 📌 Actualizar la posición de los objetos anclados
-  anchors.forEach(({ anchor, object }) => {
-    const anchorPose = frame.getPose(anchor.anchorSpace, xrRefSpace);
-    if (anchorPose) {
-      object.position.set(anchorPose.transform.position.x, anchorPose.transform.position.y, anchorPose.transform.position.z);
-      object.updateMatrixWorld(true);
-    }
-  });
 
   renderer.render(scene, camera);
 }
