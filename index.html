@@ -55,13 +55,14 @@ document.getElementById("enter-ar").addEventListener("click", async () => {
   // Configurar WebXR en el renderer
   renderer.xr.setSession(xrSession);
 
+  // Configurar renderizado WebXR
+  const gl = renderer.getContext();
+  xrSession.updateRenderState({
+    baseLayer: new XRWebGLLayer(xrSession, gl)
+  });
+
   // Obtener referencia espacial
   xrRefSpace = await xrSession.requestReferenceSpace("local");
-
-  // Configurar renderizado WebXR
-  xrSession.updateRenderState({
-    baseLayer: new XRWebGLLayer(xrSession, renderer.getContext())
-  });
 
   // Crear hit-test source
   const viewerSpace = await xrSession.requestReferenceSpace("viewer");
@@ -95,7 +96,8 @@ function createScene() {
   const loader = new THREE.GLTFLoader();
   loader.load(reticleUrl, (gltf) => {
     reticle = gltf.scene;
-    reticle.visible = false;
+    reticle.visible = true;
+    reticle.position.set(0, 0, -1); // Aparece frente a la cámara al inicio
     scene.add(reticle);
   });
 
