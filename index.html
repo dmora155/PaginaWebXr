@@ -3,117 +3,173 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello WebXR!</title>
+  <title>WebXR Hit Test with Anchors</title>
 
   <!-- three.js -->
   <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
   <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <style>
+    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+    #enter-ar {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 20px;
+      font-size: 18px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
 
-<button onclick="activateXR()">Start Hello WebXR</button>
+<button id="enter-ar">Start AR</button>
 
 <script>
-async function activateXR() {
-  console.log("✅ Iniciando WebXR...");
+let scene, camera, renderer;
+let xrSession = null;
+let xrRefSpace = null;
+let hitTestSource = null;
+let anchors = [];
+let reticle = null;
 
-  const canvas = document.createElement("canvas");
-  document.body.appendChild(canvas);
-  const gl = canvas.getContext("webgl", { xrCompatible: true });
+const flowerUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf";
+const reticleUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf";
 
-  const scene = new THREE.Scene();
+// 📌 Iniciar WebXR cuando el usuario haga clic en el botón
+document.getElementById("enter-ar").addEventListener("click", async () => {
+  if (!navigator.xr) {
+    alert("WebXR not supported");
+    return;
+  }
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.3);
-  directionalLight.position.set(10, 15, 10);
-  scene.add(directionalLight);
+  console.log("✅ WebXR Supported. Requesting session...");
+  xrSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test", "anchors"] });
 
-  const renderer = new THREE.WebGLRenderer({
-    alpha: true,
-    canvas: canvas,
-    context: gl
+  // Crear la escena 3D con Three.js
+  createScene();
+
+  // Configurar WebXR en el renderer
+  renderer.xr.setSession(xrSession);
+
+  // Configurar renderizado WebXR
+  const gl = renderer.getContext();
+  xrSession.updateRenderState({
+    baseLayer: new XRWebGLLayer(xrSession, gl)
   });
-  renderer.autoClear = true;
 
-  const camera = new THREE.PerspectiveCamera();
+  // Obtener referencia espacial
+  xrRefSpace = await xrSession.requestReferenceSpace("local");
+
+  // Crear hit-test source
+  const viewerSpace = await xrSession.requestReferenceSpace("viewer");
+  hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
+
+  console.log("✅ Hit-test source created.");
+
+  xrSession.requestAnimationFrame(onXRFrame);
+});
+
+// 📌 Función para crear la escena
+function createScene() {
+  scene = new THREE.Scene();
+
+  // Configurar luz
+  const light = new THREE.DirectionalLight(0xffffff, 0.5);
+  light.position.set(1, 2, 3);
+  scene.add(light);
+
+  // Configurar cámara
+  camera = new THREE.PerspectiveCamera();
   camera.matrixAutoUpdate = false;
 
-  const session = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ['hit-test'] });
-  session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
+  // Configurar renderer
+  renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  document.body.appendChild(renderer.domElement);
 
-  const referenceSpace = await session.requestReferenceSpace('local');
-  const viewerSpace = await session.requestReferenceSpace('viewer');
-
-  let hitTestSource = null;
-  let hitTestSourceRequested = false;
-
-  let reticle = null;
+  // Cargar la retícula (indicador de posición)
   const loader = new THREE.GLTFLoader();
-
-  loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf", function(gltf) {
+  loader.load(reticleUrl, (gltf) => {
     reticle = gltf.scene;
     reticle.visible = false;
     scene.add(reticle);
-    console.log("✅ Retícula cargada.");
   });
 
+  // Cargar el modelo 3D (flor)
   let flower;
-  loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf", function(gltf) {
+  loader.load(flowerUrl, (gltf) => {
     flower = gltf.scene;
-  });
 
-  session.addEventListener("select", () => {
-    if (flower && reticle && reticle.visible) {
-      const clone = flower.clone();
-      clone.position.copy(reticle.position);
-      scene.add(clone);
-      console.log("🌻 Objeto colocado en:", reticle.position);
-    }
-  });
+    // 📌 Evento de selección: Colocar un objeto anclado
+    xrSession.addEventListener("select", (event) => {
+      if (reticle && reticle.visible) {
+        const clone = flower.clone();
+        clone.position.copy(reticle.position);
+        scene.add(clone);
 
-  session.requestAnimationFrame(function onXRFrame(time, frame) {
-    session.requestAnimationFrame(onXRFrame);
+        // Crear un ancla en la posición seleccionada
+        const anchorPose = new XRRigidTransform(reticle.position);
+        event.frame.createAnchor(anchorPose).then((anchor) => {
+          anchors.push({ anchor, object: clone });
+        }).catch((err) => console.error("❌ Error al crear anclaje:", err));
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, session.renderState.baseLayer.framebuffer);
-
-    const pose = frame.getViewerPose(referenceSpace);
-    if (!pose) {
-      console.warn("⚠ No viewer pose detected.");
-      return;
-    }
-
-    const view = pose.views[0];
-    const viewport = session.renderState.baseLayer.getViewport(view);
-    renderer.setSize(viewport.width, viewport.height);
-
-    camera.matrix.fromArray(view.transform.matrix);
-    camera.projectionMatrix.fromArray(view.projectionMatrix);
-    camera.updateMatrixWorld(true);
-
-    if (!hitTestSourceRequested) {
-      frame.session.requestReferenceSpace('viewer').then((viewerSpace) => {
-        frame.session.requestHitTestSource({ space: viewerSpace }).then((source) => {
-          hitTestSource = source;
-          console.log("✅ Hit-test inicializado.");
-        }).catch(err => console.error("❌ Error en hit-test:", err));
-      }).catch(err => console.error("❌ Error en viewer space:", err));
-      hitTestSourceRequested = true;
-    }
-
-    if (hitTestSource) {
-      const hitTestResults = frame.getHitTestResults(hitTestSource);
-      if (hitTestResults.length > 0 && reticle) {
-        const hitPose = hitTestResults[0].getPose(referenceSpace);
-        reticle.visible = true;
-        reticle.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
-        reticle.updateMatrixWorld(true);
-        console.log("🎯 Retícula detectada en:", hitPose.transform.position);
-      } else {
-        reticle.visible = false;
+        console.log("🌻 Objeto anclado en:", reticle.position);
       }
-    }
-
-    renderer.render(scene, camera);
+    });
   });
+}
+
+// 📌 Función principal de renderizado
+function onXRFrame(time, frame) {
+  xrSession.requestAnimationFrame(onXRFrame);
+
+  const glLayer = xrSession.renderState.baseLayer;
+  renderer.getContext().bindFramebuffer(renderer.getContext().FRAMEBUFFER, glLayer.framebuffer);
+
+  const pose = frame.getViewerPose(xrRefSpace);
+  if (!pose) {
+    console.warn("⚠ No viewer pose detected.");
+    return;
+  }
+
+  const view = pose.views[0];
+  const viewport = glLayer.getViewport(view);
+  renderer.setSize(viewport.width, viewport.height);
+
+  camera.matrix.fromArray(view.transform.matrix);
+  camera.projectionMatrix.fromArray(view.projectionMatrix);
+  camera.updateMatrixWorld(true);
+
+  // 📌 Procesar hit-test para la retícula
+  if (hitTestSource) {
+    const hitTestResults = frame.getHitTestResults(hitTestSource);
+    if (hitTestResults.length > 0 && reticle) {
+      const hitPose = hitTestResults[0].getPose(xrRefSpace);
+      reticle.visible = true;
+      reticle.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
+      reticle.updateMatrixWorld(true);
+    } else {
+      reticle.visible = false;
+    }
+  }
+
+  // 📌 Actualizar la posición de los objetos anclados
+  anchors.forEach(({ anchor, object }) => {
+    const anchorPose = frame.getPose(anchor.anchorSpace, xrRefSpace);
+    if (anchorPose) {
+      object.position.set(anchorPose.transform.position.x, anchorPose.transform.position.y, anchorPose.transform.position.z);
+      object.updateMatrixWorld(true);
+    }
+  });
+
+  renderer.render(scene, camera);
 }
 </script>
 
