@@ -55,6 +55,9 @@ document.getElementById("enter-ar").addEventListener("click", async () => {
   // Crear la escena 3D con Three.js
   createScene();
 
+  // Configurar WebXR en el renderer
+  renderer.xr.setSession(xrSession);
+
   // Obtener referencia espacial
   xrRefSpace = await xrSession.requestReferenceSpace("local");
 
