@@ -33,8 +33,8 @@ let scene, camera, renderer;
 let xrSession = null;
 let xrRefSpace = null;
 let hitTestSource = null;
-let reticle = null;
 let hitTestSourceRequested = false;
+let reticle = null;
 
 const reticleUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf";
 
@@ -48,21 +48,28 @@ document.getElementById("enter-ar").addEventListener("click", async () => {
   console.log("✅ WebXR Supported. Requesting session...");
   xrSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test"] });
 
-  // 📌 Crear la escena 3D con Three.js
+  // Crear la escena 3D con Three.js
   createScene();
 
-  // 📌 Configurar WebXR en el renderer
+  // Configurar WebXR en el renderer
   renderer.xr.setSession(xrSession);
 
-  // 📌 Configurar referencia espacial
+  // Obtener referencia espacial
   xrRefSpace = await xrSession.requestReferenceSpace("local");
   console.log("✅ Reference space set:", xrRefSpace);
 
-  // 📌 Configurar WebGL con WebXR
+  // Configurar WebXR render state
   xrSession.updateRenderState({
     baseLayer: new XRWebGLLayer(xrSession, renderer.getContext())
   });
 
+  // 🔹 **Inicializar el hit-test source correctamente antes del primer frame**
+  const viewerSpace = await xrSession.requestReferenceSpace("viewer");
+  hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
+  hitTestSourceRequested = true;
+  console.log("✅ Hit-test source created.");
+
+  // Iniciar la animación
   xrSession.requestAnimationFrame(onXRFrame);
 });
 
@@ -71,26 +78,22 @@ function createScene() {
   console.log("🛠 Creating Scene...");
   scene = new THREE.Scene();
 
-  // 📌 Configurar luz
   const light = new THREE.DirectionalLight(0xffffff, 0.5);
   light.position.set(1, 2, 3);
   scene.add(light);
 
-  // 📌 Configurar cámara
   camera = new THREE.PerspectiveCamera();
   camera.matrixAutoUpdate = false;
 
-  // 📌 Configurar renderer
   renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.xr.enabled = true;
   document.body.appendChild(renderer.domElement);
 
-  // 📌 Cargar la retícula (indicador de posición)
   const loader = new THREE.GLTFLoader();
   loader.load(reticleUrl, (gltf) => {
     reticle = gltf.scene;
-    reticle.visible = false; // Se mostrará solo si hay detección
+    reticle.visible = false;
     scene.add(reticle);
     console.log("✅ Reticle loaded successfully.");
   });
@@ -117,20 +120,9 @@ function onXRFrame(time, frame) {
   camera.projectionMatrix.fromArray(view.projectionMatrix);
   camera.updateMatrixWorld(true);
 
-  // 📌 Solicitar el hit-test una sola vez
-  if (!hitTestSourceRequested) {
-    console.log("🔍 Requesting hit-test source...");
-    frame.session.requestReferenceSpace("viewer").then((viewerSpace) => {
-      frame.session.requestHitTestSource({ space: viewerSpace }).then((source) => {
-        hitTestSource = source;
-        console.log("✅ Hit-test source created.");
-      }).catch((error) => console.error("❌ Error creating hit-test source:", error));
-    }).catch((error) => console.error("❌ Error requesting viewer space:", error));
-    hitTestSourceRequested = true;
-  }
-
+  // 📌 Asegurar que tenemos `hitTestSource`
   if (!hitTestSource) {
-    console.warn("⚠ Hit-test source is null. Waiting for initialization...");
+    console.warn("⚠ Hit-test source is null.");
     return;
   }
 
