@@ -1,17 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello WebXR</title>
-
+  <title>Hit Test with Anchors</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    #enter-ar {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 20px;
+      font-size: 18px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+  
   <!-- Cargar Three.js y GLTFLoader -->
   <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
   <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
 
-<button id="start-button">Start WebXR</button>
+<button id="enter-ar">Start AR</button>
 
 <script>
 let scene, camera, renderer;
@@ -19,17 +39,18 @@ let xrSession = null;
 let xrRefSpace = null;
 let hitTestSource = null;
 let reticle = null;
+let anchors = [];
 const flowerUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf";
 const reticleUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf";
 
 // 📌 Iniciar WebXR cuando el usuario haga clic en el botón
-document.getElementById("start-button").addEventListener("click", async () => {
+document.getElementById("enter-ar").addEventListener("click", async () => {
   if (!navigator.xr) {
     alert("WebXR not supported");
     return;
   }
 
-  xrSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test"] });
+  xrSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test", "anchors"] });
 
   // Crear la escena 3D con Three.js
   createScene();
@@ -78,17 +99,24 @@ function createScene() {
   });
 
   // Cargar el modelo 3D (flor)
+  let flower;
   loader.load(flowerUrl, (gltf) => {
     flower = gltf.scene;
-  });
 
-  // Agregar evento para colocar el objeto cuando el usuario toca la pantalla
-  xrSession.addEventListener("select", () => {
-    if (reticle && reticle.visible) {
-      const clone = flower.clone();
-      clone.position.copy(reticle.position);
-      scene.add(clone);
-    }
+    // 📌 Evento de selección: Colocar un objeto anclado
+    xrSession.addEventListener("select", (event) => {
+      if (reticle && reticle.visible) {
+        const clone = flower.clone();
+        clone.position.copy(reticle.position);
+        scene.add(clone);
+
+        // Crear un ancla en la posición seleccionada
+        const anchorPose = new XRRigidTransform(reticle.position);
+        const anchor = event.frame.session.addAnchor(anchorPose);
+        
+        anchors.push({ anchor, object: clone });
+      }
+    });
   });
 }
 
@@ -121,6 +149,15 @@ function onXRFrame(time, frame) {
         reticle.visible = false;
       }
     }
+
+    // 📌 Actualizar la posición de los objetos anclados
+    anchors.forEach(({ anchor, object }) => {
+      const anchorPose = frame.getPose(anchor.anchorSpace, xrRefSpace);
+      if (anchorPose) {
+        object.position.set(anchorPose.transform.position.x, anchorPose.transform.position.y, anchorPose.transform.position.z);
+        object.updateMatrixWorld(true);
+      }
+    });
 
     renderer.render(scene, camera);
   }
