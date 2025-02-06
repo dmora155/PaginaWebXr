@@ -36,9 +36,11 @@ async function activateXR() {
     context: gl
   });
   renderer.autoClear = true;
+  renderer.xr.enabled = true;
 
   camera = new THREE.PerspectiveCamera();
   camera.matrixAutoUpdate = false;
+  scene.add(camera);
 
   const session = await navigator.xr.requestSession("immersive-ar", {requiredFeatures: ['hit-test']});
   session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
@@ -114,6 +116,12 @@ async function activateXR() {
         } else {
           reticle.visible = false;
         }
+      }
+
+      // Hacer que el botón siga la vista del usuario
+      if (removeButton3D) {
+        removeButton3D.position.set(camera.position.x, camera.position.y - 0.3, camera.position.z - 1);
+        removeButton3D.lookAt(camera.position);
       }
 
       renderer.render(scene, camera);
