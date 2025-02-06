@@ -39,6 +39,7 @@
 <script>
 let scene, previewObject, objectsPlaced = [], camera, renderer;
 const raycaster = new THREE.Raycaster();
+const touch = new THREE.Vector2();
 let selectedObject = null;
 let hitTestSource = null;
 let referenceSpace;
@@ -130,47 +131,30 @@ function onXRFrame(time, frame) {
   renderer.render(scene, camera);
 }
 
-// Interacción con gestos
-window.addEventListener("touchstart", onTouchStart);
-window.addEventListener("touchmove", onTouchMove);
-window.addEventListener("touchend", onTouchEnd);
+window.addEventListener("pointerdown", onPointerDown);
+window.addEventListener("pointermove", onPointerMove);
+window.addEventListener("pointerup", onPointerUp);
 
-function onTouchStart(event) {
-  raycaster.setFromCamera(new THREE.Vector2((event.touches[0].clientX / window.innerWidth) * 2 - 1, -(event.touches[0].clientY / window.innerHeight) * 2 + 1), camera);
+function onPointerDown(event) {
+  touch.x = (event.clientX / window.innerWidth) * 2 - 1;
+  touch.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(touch, camera);
   const intersects = raycaster.intersectObjects(objectsPlaced, true);
   if (intersects.length > 0) {
     selectedObject = intersects[0].object;
     document.getElementById("deleteButton").style.display = "block";
     initialScale = selectedObject.scale.x;
   }
-  if (event.touches.length === 2) {
-    initialTouchDistance = getDistance(event.touches);
-    initialRotation = Math.atan2(
-      event.touches[0].clientY - event.touches[1].clientY,
-      event.touches[0].clientX - event.touches[1].clientX
-    );
+}
+
+function onPointerMove(event) {
+  if (selectedObject) {
+    selectedObject.position.x += event.movementX * 0.001;
+    selectedObject.position.y -= event.movementY * 0.001;
   }
 }
 
-function onTouchMove(event) {
-  if (selectedObject && event.touches.length === 1) {
-    selectedObject.position.x += event.touches[0].movementX * 0.001;
-    selectedObject.position.y -= event.touches[0].movementY * 0.001;
-  }
-  if (selectedObject && event.touches.length === 2) {
-    const newDistance = getDistance(event.touches);
-    const scale = (newDistance / initialTouchDistance) * initialScale;
-    selectedObject.scale.set(scale, scale, scale);
-    const newRotation = Math.atan2(
-      event.touches[0].clientY - event.touches[1].clientY,
-      event.touches[0].clientX - event.touches[1].clientX
-    );
-    selectedObject.rotation.y += newRotation - initialRotation;
-    initialRotation = newRotation;
-  }
-}
-
-function onTouchEnd() {
+function onPointerUp() {
   selectedObject = null;
   document.getElementById("deleteButton").style.display = "none";
 }
@@ -182,12 +166,6 @@ function deleteObject() {
     selectedObject = null;
     document.getElementById("deleteButton").style.display = "none";
   }
-}
-
-function getDistance(touches) {
-  const dx = touches[0].clientX - touches[1].clientX;
-  const dy = touches[0].clientY - touches[1].clientY;
-  return Math.sqrt(dx * dx + dy * dy);
 }
 </script>
 
