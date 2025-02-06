@@ -3,129 +3,228 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello WebXR - Optimizado</title>
+  <title>Hello WebXR!</title>
 
   <!-- three.js -->
   <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
   <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+    .action-button {
+      padding: 12px 20px;
+      font-size: 18px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      display: block;
+    }
+    .action-button:hover {
+      background-color: #0056b3;
+    }
+  </style>
 </head>
 <body>
 
-<button onclick="activateXR()">Start Hello WebXR</button>
+<!-- 📌 Botones para iniciar AR y eliminar objetos -->
+<div id="controls">
+  <button id="enter-ar" class="action-button" onclick="activateXR()">Start AR</button>
+  <button id="delete-object" class="action-button" onclick="removeLastObject()" style="display: none;">Eliminar Último</button>
+</div>
 
 <script>
+let scene, camera, renderer;
+let xrSession = null;
+let xrRefSpace = null;
+let hitTestSource = null;
+let reticle = null;
+let placedObjects = []; // 📌 Lista de objetos colocados
+
+const flowerUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf";
+const reticleUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf";
+
+// 📌 Iniciar WebXR
 async function activateXR() {
   console.log("✅ Iniciando WebXR...");
 
-  const canvas = document.createElement("canvas");
-  document.body.appendChild(canvas);
-  const gl = canvas.getContext("webgl", {xrCompatible: true});
+  if (!navigator.xr) {
+    alert("❌ WebXR no es compatible en este navegador.");
+    return;
+  }
 
-  const scene = new THREE.Scene();
+  try {
+    console.log("✅ Solicitando sesión de AR...");
+    xrSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test"] });
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-  directionalLight.position.set(10, 15, 10);
-  scene.add(directionalLight);
+    console.log("✅ Sesión AR iniciada.");
+    
+    createScene();
 
-  const renderer = new THREE.WebGLRenderer({
-    alpha: true,
-    canvas: canvas,
-    context: gl
-  });
-  renderer.autoClear = true;
+    const canvas = document.createElement("canvas");
+    document.body.appendChild(canvas);
 
-  const camera = new THREE.PerspectiveCamera();
+    const gl = canvas.getContext("webgl", { xrCompatible: true });
+    if (!gl) {
+      alert("❌ No se pudo crear contexto WebGL.");
+      return;
+    }
+
+    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, context: gl });
+    renderer.xr.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    console.log("✅ Renderer creado.");
+
+    xrSession.updateRenderState({
+      baseLayer: new XRWebGLLayer(xrSession, gl)
+    });
+
+    console.log("✅ baseLayer configurado correctamente.");
+
+    xrRefSpace = await xrSession.requestReferenceSpace("local");
+    console.log("✅ Espacio de referencia obtenido.");
+
+    const viewerSpace = await xrSession.requestReferenceSpace("viewer");
+    hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
+    console.log("✅ Hit-test creado correctamente.");
+
+    // 📌 Mostrar botón de eliminar solo si hay objetos colocados
+    updateDeleteButton();
+
+    // 📌 Evento para detectar cuando la sesión de AR finaliza
+    xrSession.addEventListener("end", () => {
+      console.log("🚪 Sesión de AR finalizada.");
+      document.getElementById("enter-ar").style.display = "block";
+      document.getElementById("delete-object").style.display = "none";
+    });
+
+    xrSession.requestAnimationFrame(onXRFrame);
+    console.log("✅ Render Loop iniciado.");
+
+    // 📌 Evento para colocar objetos en la retícula
+    xrSession.addEventListener("select", placeObject);
+
+  } catch (error) {
+    console.error("❌ Error al iniciar WebXR:", error);
+    alert("❌ Error en WebXR: " + error.message);
+  }
+}
+
+// 📌 Crear la escena y cargar la retícula
+function createScene() {
+  console.log("✅ Creando escena...");
+  scene = new THREE.Scene();
+
+  const light = new THREE.DirectionalLight(0xffffff, 0.5);
+  light.position.set(1, 2, 3);
+  scene.add(light);
+
+  camera = new THREE.PerspectiveCamera();
   camera.matrixAutoUpdate = false;
-
-  const session = await navigator.xr.requestSession("immersive-ar", {requiredFeatures: ['hit-test']});
-  session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
-
-  const referenceSpace = await session.requestReferenceSpace('local');
-
-  let hitTestSource = null;
-  let hitTestSourceRequested = false;
-  let reticle = null;
 
   const loader = new THREE.GLTFLoader();
 
   // 📌 Cargar la retícula correctamente
-  loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf", function(gltf) {
+  loader.load(reticleUrl, (gltf) => {
     reticle = gltf.scene;
-    reticle.visible = false; 
+    reticle.visible = false;
     scene.add(reticle);
-    console.log("✅ Retícula cargada.");
+    console.log("✅ Retícula cargada correctamente.");
   });
 
-  let flower;
-  loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf", function(gltf) {
-    flower = gltf.scene;
+  // 📌 Cargar el modelo de girasol
+  loader.load(flowerUrl, (gltf) => {
+    window.flowerModel = gltf.scene;
     console.log("✅ Girasol cargado.");
   });
+}
 
-  // 📌 Detectar superficies de manera más rápida y estable
-  async function initializeHitTestSource() {
-    try {
-      const viewerSpace = await session.requestReferenceSpace("viewer");
-      hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
-      console.log("✅ Hit-test inicializado.");
-    } catch (error) {
-      console.warn("⚠ `requestHitTestSource` falló, probando `requestHitTestSourceForTransientInput()`...");
-      try {
-        hitTestSource = await session.requestHitTestSourceForTransientInput({ profile: "generic-touchscreen" });
-        console.log("✅ Hit-test alternativo creado.");
-      } catch (err) {
-        console.error("❌ No se pudo crear hit-test.");
-      }
+// 📌 Función para colocar un objeto en la retícula
+function placeObject() {
+  if (reticle && reticle.visible && window.flowerModel) {
+    const flowerClone = window.flowerModel.clone();
+    flowerClone.position.copy(reticle.position);
+    scene.add(flowerClone);
+    placedObjects.push(flowerClone);
+    console.log("🌻 Girasol colocado en:", reticle.position);
+
+    // 📌 Mostrar botón de eliminar si hay objetos
+    updateDeleteButton();
+  }
+}
+
+// 📌 Función para eliminar el último objeto colocado
+function removeLastObject() {
+  if (placedObjects.length > 0) {
+    const lastObject = placedObjects.pop();
+    scene.remove(lastObject);
+    console.log("🗑️ Último girasol eliminado.");
+
+    // 📌 Ocultar el botón si ya no hay objetos
+    updateDeleteButton();
+  } else {
+    console.warn("⚠ No hay objetos para eliminar.");
+  }
+}
+
+// 📌 Función para mostrar/ocultar botón de eliminar
+function updateDeleteButton() {
+  const deleteButton = document.getElementById("delete-object");
+  if (placedObjects.length > 0) {
+    deleteButton.style.display = "block";
+  } else {
+    deleteButton.style.display = "none";
+  }
+}
+
+// 📌 Renderizado con Depuración de Retícula
+function onXRFrame(time, frame) {
+  xrSession.requestAnimationFrame(onXRFrame);
+
+  const pose = frame.getViewerPose(xrRefSpace);
+  if (!pose) {
+    console.warn("⚠ No se detecta la pose del visor.");
+    return;
+  }
+
+  console.log("✅ Pose detectada.");
+
+  const view = pose.views[0];
+  const viewport = xrSession.renderState.baseLayer.getViewport(view);
+  renderer.setSize(viewport.width, viewport.height);
+
+  camera.matrix.fromArray(view.transform.matrix);
+  camera.projectionMatrix.fromArray(view.projectionMatrix);
+  camera.updateMatrixWorld(true);
+
+  if (hitTestSource) {
+    const hitTestResults = frame.getHitTestResults(hitTestSource);
+    console.log("🔎 Hit-test Results:", hitTestResults.length);
+
+    if (hitTestResults.length > 0 && reticle) {
+      const hitPose = hitTestResults[0].getPose(xrRefSpace);
+      reticle.visible = true;
+      reticle.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
+      reticle.updateMatrixWorld(true);
+      console.log("🎯 Retícula detectada en:", hitPose.transform.position);
+    } else {
+      console.warn("⚠ No se detectó superficie, la retícula sigue oculta.");
+      reticle.visible = false;
     }
   }
 
-  initializeHitTestSource(); // Llamar a la función de inmediato
-
-  session.addEventListener("select", () => {
-    if (flower && reticle && reticle.visible) {
-      const clone = flower.clone();
-      clone.position.copy(reticle.position);
-      scene.add(clone);
-      console.log("🌻 Girasol colocado en:", reticle.position);
-    }
-  });
-
-  session.requestAnimationFrame(function onXRFrame(time, frame) {
-    session.requestAnimationFrame(onXRFrame);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, session.renderState.baseLayer.framebuffer);
-
-    const pose = frame.getViewerPose(referenceSpace);
-    if (pose) {
-      const view = pose.views[0];
-      const viewport = session.renderState.baseLayer.getViewport(view);
-      renderer.setSize(viewport.width, viewport.height);
-
-      camera.matrix.fromArray(view.transform.matrix);
-      camera.projectionMatrix.fromArray(view.projectionMatrix);
-      camera.updateMatrixWorld(true);
-
-      if (!hitTestSourceRequested) {
-        initializeHitTestSource(); // Asegurar que solo se solicite una vez
-        hitTestSourceRequested = true;
-      }
-
-      if (hitTestSource) {
-        const hitTestResults = frame.getHitTestResults(hitTestSource);
-        if (hitTestResults.length > 0 && reticle) {
-          const hitPose = hitTestResults[0].getPose(referenceSpace);
-          reticle.visible = true;
-          reticle.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
-          reticle.updateMatrixWorld(true);
-          console.log("🎯 Retícula detectada en:", hitPose.transform.position);
-        } else {
-          reticle.visible = false;
-        }
-      }
-
-      renderer.render(scene, camera);
-    }
-  });
+  renderer.render(scene, camera);
 }
 </script>
 
