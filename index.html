@@ -9,43 +9,23 @@
   <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <style>
-    #uiContainer {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-    #removeButton {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      background: red;
-      color: white;
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
-      pointer-events: all;
+    body {
+      margin: 0;
+      overflow: hidden;
+      touch-action: none;
     }
   </style>
 </head>
 <body>
 
 <button id="startButton" onclick="activateXR()">Start Hello WebXR</button>
-<div id="uiContainer">
-  <button id="removeButton" style="display: none;" onclick="removeSelectedObject()">Remove Selected Object</button>
-</div>
 
 <script>
-let scene, flower, reticle, objectsPlaced = [], camera;
+let scene, flower, reticle, objectsPlaced = [], camera, renderer;
 const raycaster = new THREE.Raycaster();
-let controller;
 let selectedObject = null;
+let touchStartDistance = 0;
+let isDragging = false;
 
 async function activateXR() {
   const canvas = document.createElement("canvas");
@@ -53,12 +33,12 @@ async function activateXR() {
   const gl = canvas.getContext("webgl", {xrCompatible: true});
 
   scene = new THREE.Scene();
-
+  
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.3);
   directionalLight.position.set(10, 15, 10);
   scene.add(directionalLight);
 
-  const renderer = new THREE.WebGLRenderer({
+  renderer = new THREE.WebGLRenderer({
     alpha: true,
     canvas: canvas,
     context: gl
@@ -72,9 +52,8 @@ async function activateXR() {
 
   const session = await navigator.xr.requestSession("immersive-ar", {requiredFeatures: ['hit-test']});
   session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
-
   const referenceSpace = await session.requestReferenceSpace('local');
-
+  
   let hitTestSource = null;
   let hitTestSourceRequested = false;
 
@@ -89,26 +68,20 @@ async function activateXR() {
     flower = gltf.scene;
   });
 
-  document.getElementById("startButton").style.display = "none";
-  document.getElementById("removeButton").style.display = "block";
-
-  controller = renderer.xr.getController(0);
-  controller.addEventListener("selectstart", selectObject);
-  scene.add(controller);
-
   session.addEventListener("select", () => {
     if (flower && reticle && reticle.visible) {
       const clone = flower.clone();
       clone.position.copy(reticle.position);
+      clone.userData.isInteractable = true;
       scene.add(clone);
       objectsPlaced.push(clone);
     }
   });
 
-  session.addEventListener("end", () => {
-    document.getElementById("startButton").style.display = "block";
-    document.getElementById("removeButton").style.display = "none";
-  });
+  canvas.addEventListener("pointerdown", onPointerDown);
+  canvas.addEventListener("pointermove", onPointerMove);
+  canvas.addEventListener("pointerup", onPointerUp);
+  canvas.addEventListener("pointercancel", onPointerUp);
 
   session.requestAnimationFrame(function onXRFrame(time, frame) {
     session.requestAnimationFrame(onXRFrame);
@@ -150,20 +123,26 @@ async function activateXR() {
   });
 }
 
-function selectObject(event) {
-  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+function onPointerDown(event) {
+  raycaster.setFromCamera(new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1), camera);
   const intersects = raycaster.intersectObjects(objectsPlaced, true);
   if (intersects.length > 0) {
     selectedObject = intersects[0].object;
+    isDragging = true;
   }
 }
 
-function removeSelectedObject() {
-  if (selectedObject) {
-    scene.remove(selectedObject);
-    objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
-    selectedObject = null;
-  }
+function onPointerMove(event) {
+  if (!isDragging || !selectedObject) return;
+  const deltaX = (event.movementX || 0) * 0.01;
+  const deltaY = (event.movementY || 0) * 0.01;
+  selectedObject.position.x += deltaX;
+  selectedObject.position.y -= deltaY;
+}
+
+function onPointerUp(event) {
+  isDragging = false;
+  selectedObject = null;
 }
 </script>
 
