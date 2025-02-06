@@ -21,9 +21,8 @@
 <button id="startButton" onclick="activateXR()">Start Hello WebXR</button>
 
 <script>
-let scene, flower, reticle, objectsPlaced = [], camera, renderer;
+let scene, previewObject, objectsPlaced = [], camera, renderer;
 const raycaster = new THREE.Raycaster();
-const touchStart = new Map();
 let selectedObject = null;
 let isDragging = false;
 let hitTestSource = null;
@@ -59,20 +58,16 @@ async function activateXR() {
   referenceSpace = await session.requestReferenceSpace('local');
 
   const loader = new THREE.GLTFLoader();
-  loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf", function(gltf) {
-    reticle = gltf.scene;
-    reticle.visible = false;
-    scene.add(reticle);
-  });
-
   loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf", function(gltf) {
-    flower = gltf.scene;
+    previewObject = gltf.scene;
+    previewObject.visible = false;
+    scene.add(previewObject);
   });
 
   session.addEventListener("select", () => {
-    if (flower && reticle && reticle.visible) {
-      const clone = flower.clone();
-      clone.position.copy(reticle.position);
+    if (previewObject && previewObject.visible) {
+      const clone = previewObject.clone();
+      clone.position.copy(previewObject.position);
       clone.userData.isInteractable = true;
       scene.add(clone);
       objectsPlaced.push(clone);
@@ -110,17 +105,45 @@ function onXRFrame(time, frame) {
 
     if (hitTestSource) {
       const hitTestResults = frame.getHitTestResults(hitTestSource);
-      if (hitTestResults.length > 0 && reticle) {
+      if (hitTestResults.length > 0 && previewObject) {
         const hitPose = hitTestResults[0].getPose(referenceSpace);
-        reticle.visible = true;
-        reticle.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
-        reticle.updateMatrixWorld(true);
+        previewObject.visible = true;
+        previewObject.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
+        previewObject.updateMatrixWorld(true);
       } else {
-        reticle.visible = false;
+        previewObject.visible = false;
       }
     }
   }
   renderer.render(scene, camera);
+}
+
+// Interacción con gestos
+window.addEventListener("touchstart", onTouchStart);
+window.addEventListener("touchmove", onTouchMove);
+window.addEventListener("touchend", onTouchEnd);
+
+function onTouchStart(event) {
+  if (event.touches.length === 1) {
+    raycaster.setFromCamera(new THREE.Vector2((event.touches[0].clientX / window.innerWidth) * 2 - 1, -(event.touches[0].clientY / window.innerHeight) * 2 + 1), camera);
+    const intersects = raycaster.intersectObjects(objectsPlaced, true);
+    if (intersects.length > 0) {
+      selectedObject = intersects[0].object;
+    }
+  }
+}
+
+function onTouchMove(event) {
+  if (selectedObject && event.touches.length === 1) {
+    const deltaX = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
+    const deltaY = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
+    selectedObject.position.x += deltaX * 0.05;
+    selectedObject.position.y -= deltaY * 0.05;
+  }
+}
+
+function onTouchEnd() {
+  selectedObject = null;
 }
 </script>
 
