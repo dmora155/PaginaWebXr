@@ -43,8 +43,9 @@ let selectedObject = null;
 let hitTestSource = null;
 let referenceSpace;
 let session;
+let initialTouchDistance = 0;
+let initialScale = 1;
 let initialRotation = 0;
-let initialDistance = 0;
 
 async function activateXR() {
   const canvas = document.createElement("canvas");
@@ -140,6 +141,14 @@ function onTouchStart(event) {
   if (intersects.length > 0) {
     selectedObject = intersects[0].object;
     document.getElementById("deleteButton").style.display = "block";
+    initialScale = selectedObject.scale.x;
+  }
+  if (event.touches.length === 2) {
+    initialTouchDistance = getDistance(event.touches);
+    initialRotation = Math.atan2(
+      event.touches[0].clientY - event.touches[1].clientY,
+      event.touches[0].clientX - event.touches[1].clientX
+    );
   }
 }
 
@@ -150,9 +159,8 @@ function onTouchMove(event) {
   }
   if (selectedObject && event.touches.length === 2) {
     const newDistance = getDistance(event.touches);
-    const scale = newDistance / initialDistance;
+    const scale = (newDistance / initialTouchDistance) * initialScale;
     selectedObject.scale.set(scale, scale, scale);
-
     const newRotation = Math.atan2(
       event.touches[0].clientY - event.touches[1].clientY,
       event.touches[0].clientX - event.touches[1].clientX
