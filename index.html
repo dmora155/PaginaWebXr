@@ -14,17 +14,6 @@
       overflow: hidden;
       touch-action: none;
     }
-    #menu {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      padding: 20px;
-      text-align: center;
-      border-radius: 10px;
-      z-index: 9999;
-    }
     #controls {
       position: fixed;
       top: 10px;
@@ -47,46 +36,24 @@
 </head>
 <body>
 
-<div id="menu">
-  <h2>Select Mode</h2>
-  <button onclick="startPlacementMode()">Placement Mode</button>
-  <button onclick="startEditMode()">Edit Mode</button>
-</div>
-
 <div id="controls" style="display: none;">
   <button id="startButton" onclick="activateXR()">Start AR</button>
-  <button id="editModeButton" onclick="toggleEditMode()">Toggle Edit Mode</button>
   <button id="deleteButton" onclick="deleteObject()" style="display: none;">Delete Object</button>
 </div>
 
 <script>
-let scene, previewObject, objectsPlaced = [], camera, renderer;
+let scene, objectPlaced = null, camera, renderer;
 const raycaster = new THREE.Raycaster();
 const touch = new THREE.Vector2();
-let selectedObject = null;
 let hitTestSource = null;
 let referenceSpace;
 let session;
-let isEditMode = false;
 let initialTouchDistance = 0;
 let initialScale = 1;
 let initialRotation = 0;
-let isPlacementMode = false;
-
-function startPlacementMode() {
-  isPlacementMode = true;
-  document.getElementById("menu").style.display = "none";
-  document.getElementById("controls").style.display = "flex";
-}
-
-function startEditMode() {
-  isPlacementMode = false;
-  isEditMode = true;
-  document.getElementById("menu").style.display = "none";
-  document.getElementById("controls").style.display = "flex";
-}
 
 async function activateXR() {
+  document.getElementById("controls").style.display = "flex";
   const canvas = document.createElement("canvas");
   document.body.appendChild(canvas);
   const gl = canvas.getContext("webgl", {xrCompatible: true});
@@ -115,18 +82,15 @@ async function activateXR() {
 
   const loader = new THREE.GLTFLoader();
   loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf", function(gltf) {
-    previewObject = gltf.scene;
-    previewObject.visible = false;
-    scene.add(previewObject);
+    objectPlaced = gltf.scene;
+    objectPlaced.visible = false;
+    scene.add(objectPlaced);
   });
 
   session.addEventListener("select", () => {
-    if (isPlacementMode && previewObject && previewObject.visible) {
-      const clone = previewObject.clone();
-      clone.position.copy(previewObject.position);
-      clone.userData.isInteractable = true;
-      scene.add(clone);
-      objectsPlaced.push(clone);
+    if (objectPlaced && objectPlaced.visible) {
+      objectPlaced.userData.isInteractable = true;
+      document.getElementById("deleteButton").style.display = "block";
     }
   });
 
@@ -154,31 +118,49 @@ function onXRFrame(time, frame) {
     camera.projectionMatrix.fromArray(view.projectionMatrix);
     camera.updateMatrixWorld(true);
 
-    if (hitTestSource && isPlacementMode) {
+    if (hitTestSource && objectPlaced) {
       const hitTestResults = frame.getHitTestResults(hitTestSource);
-      if (hitTestResults.length > 0 && previewObject) {
+      if (hitTestResults.length > 0) {
         const hitPose = hitTestResults[0].getPose(referenceSpace);
-        previewObject.visible = true;
-        previewObject.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
-        previewObject.updateMatrixWorld(true);
-      } else {
-        previewObject.visible = false;
+        objectPlaced.visible = true;
+        objectPlaced.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
+        objectPlaced.updateMatrixWorld(true);
       }
     }
   }
   renderer.render(scene, camera);
 }
 
-function toggleEditMode() {
-  isEditMode = !isEditMode;
-  document.getElementById("editModeButton").innerText = isEditMode ? "Exit Edit Mode" : "Toggle Edit Mode";
+window.addEventListener("pointerdown", onPointerDown);
+window.addEventListener("pointermove", onPointerMove);
+window.addEventListener("pointerup", onPointerUp);
+
+function onPointerDown(event) {
+  touch.x = (event.clientX / window.innerWidth) * 2 - 1;
+  touch.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(touch, camera);
+  const intersects = raycaster.intersectObject(objectPlaced, true);
+  if (intersects.length > 0) {
+    document.getElementById("deleteButton").style.display = "block";
+    initialScale = objectPlaced.scale.x;
+  }
+}
+
+function onPointerMove(event) {
+  if (objectPlaced) {
+    objectPlaced.position.x += event.movementX * 0.001;
+    objectPlaced.position.y -= event.movementY * 0.001;
+  }
+}
+
+function onPointerUp() {
+  document.getElementById("deleteButton").style.display = "none";
 }
 
 function deleteObject() {
-  if (selectedObject) {
-    scene.remove(selectedObject);
-    objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
-    selectedObject = null;
+  if (objectPlaced) {
+    scene.remove(objectPlaced);
+    objectPlaced = null;
     document.getElementById("deleteButton").style.display = "none";
   }
 }
