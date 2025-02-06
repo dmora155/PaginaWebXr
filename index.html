@@ -27,6 +27,7 @@ const touchStart = new Map();
 let selectedObject = null;
 let isDragging = false;
 let hitTestSource = null;
+let hitTestSourceRequested = false;
 let referenceSpace;
 let session;
 
@@ -56,7 +57,7 @@ async function activateXR() {
   session = await navigator.xr.requestSession("immersive-ar", {requiredFeatures: ['hit-test']});
   session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
   referenceSpace = await session.requestReferenceSpace('local');
-  
+
   const loader = new THREE.GLTFLoader();
   loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf", function(gltf) {
     reticle = gltf.scene;
@@ -79,19 +80,13 @@ async function activateXR() {
   });
 
   session.requestAnimationFrame(onXRFrame);
-  requestHitTestSource();
-
-  canvas.addEventListener("pointerdown", onPointerDown);
-  canvas.addEventListener("pointermove", onPointerMove);
-  canvas.addEventListener("pointerup", onPointerUp);
-  canvas.addEventListener("touchstart", onTouchStart);
-  canvas.addEventListener("touchmove", onTouchMove);
-  canvas.addEventListener("touchend", onTouchEnd);
+  requestHitTestSource(session);
 }
 
-async function requestHitTestSource() {
+async function requestHitTestSource(session) {
   const viewerReferenceSpace = await session.requestReferenceSpace('viewer');
   hitTestSource = await session.requestHitTestSource({ space: viewerReferenceSpace });
+  hitTestSourceRequested = true;
 }
 
 function onXRFrame(time, frame) {
@@ -109,6 +104,10 @@ function onXRFrame(time, frame) {
     camera.projectionMatrix.fromArray(view.projectionMatrix);
     camera.updateMatrixWorld(true);
 
+    if (!hitTestSourceRequested) {
+      requestHitTestSource(session);
+    }
+
     if (hitTestSource) {
       const hitTestResults = frame.getHitTestResults(hitTestSource);
       if (hitTestResults.length > 0 && reticle) {
@@ -122,39 +121,6 @@ function onXRFrame(time, frame) {
     }
   }
   renderer.render(scene, camera);
-}
-
-function onPointerDown(event) {
-  raycaster.setFromCamera(new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1), camera);
-  const intersects = raycaster.intersectObjects(objectsPlaced, true);
-  if (intersects.length > 0) {
-    selectedObject = intersects[0].object;
-    scene.remove(selectedObject);
-    objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
-  }
-}
-
-function onTouchStart(event) {
-  if (event.touches.length === 2) {
-    const dx = event.touches[0].clientX - event.touches[1].clientX;
-    const dy = event.touches[0].clientY - event.touches[1].clientY;
-    touchStart.set("distance", Math.sqrt(dx * dx + dy * dy));
-  }
-}
-
-function onTouchMove(event) {
-  if (event.touches.length === 2 && selectedObject) {
-    const dx = event.touches[0].clientX - event.touches[1].clientX;
-    const dy = event.touches[0].clientY - event.touches[1].clientY;
-    const newDistance = Math.sqrt(dx * dx + dy * dy);
-    const initialDistance = touchStart.get("distance") || newDistance;
-    const scale = newDistance / initialDistance;
-    selectedObject.scale.set(scale, scale, scale);
-  }
-}
-
-function onTouchEnd(event) {
-  touchStart.clear();
 }
 </script>
 
