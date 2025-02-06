@@ -2,128 +2,18 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebXR Debugging</title>
-
-  <!-- three.js -->
-  <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
-  <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
+  <title>WebXR Debug</title>
 </head>
 <body>
 
-<button id="enter-ar" onclick="activateXR()">Start AR</button>
+<button id="test" onclick="console.log('Hola')">Haz clic aquí</button>
 
 <script>
-let scene, camera, renderer;
-let xrSession = null;
-let xrRefSpace = null;
-let hitTestSource = null;
-let reticle = null;
+console.log("✅ Cargando página...");
 
-const flowerUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf";
-const reticleUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf";
-
-// 📌 Iniciar WebXR con depuración
-async function activateXR() {
-  console.log("✅ Intentando iniciar WebXR...");
-
-  if (!navigator.xr) {
-    alert("WebXR no es compatible en este dispositivo.");
-    return;
-  }
-
-  try {
-    console.log("✅ Solicitando sesión de AR...");
-    xrSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test"] });
-
-    console.log("✅ Sesión AR iniciada.");
-    
-    createScene();  
-    renderer.xr.setSession(xrSession);
-
-    const gl = renderer.getContext();
-    xrSession.updateRenderState({ baseLayer: new XRWebGLLayer(xrSession, gl) });
-
-    console.log("✅ baseLayer configurado correctamente.");
-
-    xrRefSpace = await xrSession.requestReferenceSpace("local");
-    console.log("✅ Espacio de referencia obtenido.");
-
-    const viewerSpace = await xrSession.requestReferenceSpace("viewer");
-    hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
-    console.log("✅ Hit-test creado correctamente.");
-
-    xrSession.requestAnimationFrame(onXRFrame);
-    console.log("✅ Render Loop iniciado.");
-
-  } catch (error) {
-    console.error("❌ Error al iniciar WebXR:", error);
-  }
-}
-
-// 📌 Crear la escena con depuración
-function createScene() {
-  console.log("✅ Creando escena...");
-  scene = new THREE.Scene();
-
-  const light = new THREE.DirectionalLight(0xffffff, 0.5);
-  light.position.set(1, 2, 3);
-  scene.add(light);
-
-  camera = new THREE.PerspectiveCamera();
-  camera.matrixAutoUpdate = false;
-
-  renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.xr.enabled = true;
-  document.body.appendChild(renderer.domElement);
-
-  const loader = new THREE.GLTFLoader();
-  loader.load(reticleUrl, (gltf) => {
-    reticle = gltf.scene;
-    reticle.visible = false;
-    scene.add(reticle);
-    console.log("✅ Retícula cargada.");
-  });
-}
-
-// 📌 Renderizado con depuración
-function onXRFrame(time, frame) {
-  xrSession.requestAnimationFrame(onXRFrame);
-
-  const glLayer = xrSession.renderState.baseLayer;
-  renderer.getContext().bindFramebuffer(renderer.getContext().FRAMEBUFFER, glLayer.framebuffer);
-
-  const pose = frame.getViewerPose(xrRefSpace);
-  if (!pose) {
-    console.warn("⚠ No se detecta la pose del visor.");
-    return;
-  }
-
-  const view = pose.views[0];
-  const viewport = glLayer.getViewport(view);
-  renderer.setSize(viewport.width, viewport.height);
-
-  camera.matrix.fromArray(view.transform.matrix);
-  camera.projectionMatrix.fromArray(view.projectionMatrix);
-  camera.updateMatrixWorld(true);
-
-  // 📌 Procesar hit-test para la retícula
-  if (hitTestSource) {
-    const hitTestResults = frame.getHitTestResults(hitTestSource);
-    if (hitTestResults.length > 0 && reticle) {
-      const hitPose = hitTestResults[0].getPose(xrRefSpace);
-      reticle.visible = true;
-      reticle.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
-      reticle.updateMatrixWorld(true);
-      console.log("🎯 Retícula detectada en:", hitPose.transform.position);
-    } else {
-      reticle.visible = false;
-    }
-  }
-
-  renderer.render(scene, camera);
-}
+window.onload = () => {
+    console.log("✅ Página cargada correctamente.");
+};
 </script>
 
 </body>
