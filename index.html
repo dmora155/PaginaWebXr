@@ -49,10 +49,10 @@ let hitTestSource = null;
 let referenceSpace;
 let session;
 let isObjectPlaced = false;
+let isDragging = false;
 let initialTouchDistance = 0;
 let initialScale = 1;
 let initialRotation = 0;
-let isDragging = false;
 
 async function activateXR() {
   document.getElementById("controls").style.display = "flex";
@@ -147,6 +147,7 @@ function onPointerDown(event) {
   if (intersects.length > 0) {
     document.getElementById("deleteButton").style.display = "block";
     initialScale = objectPlaced.scale.x;
+    initialRotation = objectPlaced.rotation.y;
   }
 }
 
@@ -154,6 +155,8 @@ function onPointerMove(event) {
   if (isObjectPlaced && isDragging) {
     objectPlaced.position.x += event.movementX * 0.001;
     objectPlaced.position.y -= event.movementY * 0.001;
+    objectPlaced.rotation.y += event.movementX * 0.01;
+    objectPlaced.scale.set(initialScale + event.movementY * 0.01, initialScale + event.movementY * 0.01, initialScale + event.movementY * 0.01);
   }
 }
 
