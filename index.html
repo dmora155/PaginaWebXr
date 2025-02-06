@@ -3,11 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebXR Fix (XRWebGLLayer)</title>
+  <title>WebXR Debugging (Forzar WebGL)</title>
 
   <!-- three.js -->
   <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
   <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <style>
+    body { margin: 0; background: red; }
+  </style>
 </head>
 <body>
 
@@ -23,53 +27,72 @@ let reticle = null;
 const flowerUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf";
 const reticleUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf";
 
-// 📌 Iniciar WebXR con FIX para XRWebGLLayer
+// 📌 Registrar errores globales
+window.onerror = function (message, source, lineno, colno, error) {
+  alert("❌ ERROR: " + message + " en línea " + lineno);
+};
+
+window.addEventListener("unhandledrejection", event => {
+  alert("❌ PROMISE REJECTION: " + event.reason);
+});
+
+// 📌 Iniciar WebXR
 async function activateXR() {
-  console.log("✅ Iniciando WebXR...");
+  alert("✅ Intentando iniciar WebXR...");
 
   if (!navigator.xr) {
-    alert("❌ WebXR no está soportado en este navegador.");
+    alert("❌ WebXR no es compatible en este navegador.");
     return;
   }
 
   try {
-    console.log("✅ Solicitando sesión de AR...");
+    alert("✅ Solicitando sesión de AR...");
     xrSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test"] });
 
-    console.log("✅ Sesión AR iniciada.");
+    alert("✅ Sesión AR iniciada.");
     
     createScene();
 
     // 📌 Forzar WebGL antes de asignar XRWebGLLayer
-    const gl = document.createElement("canvas").getContext("webgl", { xrCompatible: true });
+    const canvas = document.createElement("canvas");
+    document.body.appendChild(canvas);
+
+    const gl = canvas.getContext("webgl", { xrCompatible: true });
+    if (!gl) {
+      alert("❌ No se pudo crear contexto WebGL.");
+      return;
+    }
+
     renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, context: gl });
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
 
+    alert("✅ Renderer creado.");
+
     xrSession.updateRenderState({
-      baseLayer: new XRWebGLLayer(xrSession, gl) // 📌 SOLUCIÓN AL PROBLEMA
+      baseLayer: new XRWebGLLayer(xrSession, gl)
     });
 
-    console.log("✅ baseLayer configurado correctamente.");
+    alert("✅ baseLayer configurado correctamente.");
 
     xrRefSpace = await xrSession.requestReferenceSpace("local");
-    console.log("✅ Espacio de referencia obtenido.");
+    alert("✅ Espacio de referencia obtenido.");
 
     const viewerSpace = await xrSession.requestReferenceSpace("viewer");
     hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
-    console.log("✅ Hit-test creado correctamente.");
+    alert("✅ Hit-test creado correctamente.");
 
     xrSession.requestAnimationFrame(onXRFrame);
-    console.log("✅ Render Loop iniciado.");
+    alert("✅ Render Loop iniciado.");
 
   } catch (error) {
-    console.error("❌ Error al iniciar WebXR:", error);
+    alert("❌ Error al iniciar WebXR: " + error.message);
   }
 }
 
-// 📌 Crear la escena con FIX para WebGL
+// 📌 Crear la escena con Depuración
 function createScene() {
-  console.log("✅ Creando escena...");
+  alert("✅ Creando escena...");
   scene = new THREE.Scene();
 
   const light = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -84,19 +107,21 @@ function createScene() {
     reticle = gltf.scene;
     reticle.visible = false;
     scene.add(reticle);
-    console.log("✅ Retícula cargada.");
+    alert("✅ Retícula cargada.");
   });
 }
 
-// 📌 Renderizado con FIX en XRWebGLLayer
+// 📌 Renderizado con Depuración
 function onXRFrame(time, frame) {
   xrSession.requestAnimationFrame(onXRFrame);
 
   const pose = frame.getViewerPose(xrRefSpace);
   if (!pose) {
-    console.warn("⚠ No se detecta la pose del visor.");
+    alert("⚠ No se detecta la pose del visor.");
     return;
   }
+
+  alert("✅ Pose detectada.");
 
   const view = pose.views[0];
   const viewport = xrSession.renderState.baseLayer.getViewport(view);
@@ -106,21 +131,10 @@ function onXRFrame(time, frame) {
   camera.projectionMatrix.fromArray(view.projectionMatrix);
   camera.updateMatrixWorld(true);
 
-  // 📌 Procesar hit-test para la retícula
-  if (hitTestSource) {
-    const hitTestResults = frame.getHitTestResults(hitTestSource);
-    if (hitTestResults.length > 0 && reticle) {
-      const hitPose = hitTestResults[0].getPose(xrRefSpace);
-      reticle.visible = true;
-      reticle.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
-      reticle.updateMatrixWorld(true);
-      console.log("🎯 Retícula detectada en:", hitPose.transform.position);
-    } else {
-      reticle.visible = false;
-    }
-  }
+  alert("✅ Cámara actualizada.");
 
   renderer.render(scene, camera);
+  alert("✅ Render completado.");
 }
 </script>
 
