@@ -18,7 +18,7 @@
       transform: translateX(-50%);
       display: flex;
       gap: 10px;
-      z-index: 1000;
+      z-index: 1000; /* Asegura que esté sobre la cámara */
     }
     .action-button {
       padding: 12px 20px;
@@ -99,9 +99,8 @@ async function activateXR() {
     hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
     console.log("✅ Hit-test creado correctamente.");
 
-    // 📌 Ocultar el botón de iniciar AR y mostrar el de eliminar solo cuando AR está activo
-    document.getElementById("enter-ar").style.display = "none";
-    document.getElementById("delete-object").style.display = "block";
+    // 📌 Mostrar "Eliminar Último" solo si hay objetos
+    updateDeleteButton();
 
     // 📌 Evento para detectar cuando la sesión de AR finaliza
     xrSession.addEventListener("end", () => {
@@ -159,6 +158,9 @@ function placeObject() {
     scene.add(flowerClone);
     placedObjects.push(flowerClone);
     console.log("🌻 Girasol colocado en:", reticle.position);
+
+    // 📌 Mostrar botón de eliminar si hay objetos
+    updateDeleteButton();
   }
 }
 
@@ -168,8 +170,21 @@ function removeLastObject() {
     const lastObject = placedObjects.pop();
     scene.remove(lastObject);
     console.log("🗑️ Último girasol eliminado.");
+
+    // 📌 Ocultar el botón si ya no hay objetos
+    updateDeleteButton();
   } else {
     console.warn("⚠ No hay objetos para eliminar.");
+  }
+}
+
+// 📌 Función para mostrar/ocultar botón de eliminar
+function updateDeleteButton() {
+  const deleteButton = document.getElementById("delete-object");
+  if (placedObjects.length > 0) {
+    deleteButton.style.display = "block";
+  } else {
+    deleteButton.style.display = "none";
   }
 }
 
