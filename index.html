@@ -60,6 +60,8 @@ async function activateXR() {
 
   document.getElementById("startButton").style.display = "none";
   document.getElementById("removeButton").style.display = "block";
+  document.getElementById("removeButton").style.position = "absolute";
+  document.getElementById("removeButton").style.zIndex = "100";
 
   session.addEventListener("select", () => {
     if (flower && reticle && reticle.visible) {
