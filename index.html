@@ -23,7 +23,7 @@ let reticle = null;
 const flowerUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf";
 const reticleUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf";
 
-// 📌 Función para iniciar WebXR
+// 📌 Iniciar WebXR con depuración
 async function activateXR() {
   console.log("✅ Intentando iniciar WebXR...");
 
@@ -38,7 +38,7 @@ async function activateXR() {
 
     console.log("✅ Sesión AR iniciada.");
     
-    createScene();  // Crear la escena 3D
+    createScene();  
     renderer.xr.setSession(xrSession);
 
     const gl = renderer.getContext();
@@ -61,7 +61,7 @@ async function activateXR() {
   }
 }
 
-// 📌 Función para crear la escena
+// 📌 Crear la escena con depuración
 function createScene() {
   console.log("✅ Creando escena...");
   scene = new THREE.Scene();
@@ -87,7 +87,7 @@ function createScene() {
   });
 }
 
-// 📌 Función principal de renderizado
+// 📌 Renderizado con depuración
 function onXRFrame(time, frame) {
   xrSession.requestAnimationFrame(onXRFrame);
 
