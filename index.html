@@ -7,11 +7,39 @@
 
   <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
   <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <style>
+    #uiContainer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    #removeButton {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      background: red;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      pointer-events: all;
+    }
+  </style>
 </head>
 <body>
 
 <button id="startButton" onclick="activateXR()">Start Hello WebXR</button>
-<button id="removeButton" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; background: red; color: white; padding: 10px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;" onclick="removeObjects()">Remove Objects</button>
+<div id="uiContainer">
+  <button id="removeButton" style="display: none;" onclick="removeObjects()">Remove Objects</button>
+</div>
 
 <script>
 let scene, flower, reticle, objectsPlaced = [], camera;
@@ -61,10 +89,7 @@ async function activateXR() {
   });
 
   document.getElementById("startButton").style.display = "none";
-
-  setTimeout(() => {
-    document.getElementById("removeButton").style.display = "block";
-  }, 2000); // Se retrasa la aparición para asegurarse de que no sea sobrepuesto
+  document.getElementById("removeButton").style.display = "block";
 
   controller = renderer.xr.getController(0);
   controller.addEventListener("selectstart", onSelect);
