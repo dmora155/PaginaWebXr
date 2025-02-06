@@ -52,6 +52,7 @@ let isObjectPlaced = false;
 let initialTouchDistance = 0;
 let initialScale = 1;
 let initialRotation = 0;
+let isDragging = false;
 
 async function activateXR() {
   document.getElementById("controls").style.display = "flex";
@@ -138,6 +139,7 @@ window.addEventListener("pointerup", onPointerUp);
 
 function onPointerDown(event) {
   if (!isObjectPlaced) return;
+  isDragging = true;
   touch.x = (event.clientX / window.innerWidth) * 2 - 1;
   touch.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(touch, camera);
@@ -149,13 +151,14 @@ function onPointerDown(event) {
 }
 
 function onPointerMove(event) {
-  if (isObjectPlaced) {
+  if (isObjectPlaced && isDragging) {
     objectPlaced.position.x += event.movementX * 0.001;
     objectPlaced.position.y -= event.movementY * 0.001;
   }
 }
 
 function onPointerUp() {
+  isDragging = false;
   document.getElementById("deleteButton").style.display = "none";
 }
 
