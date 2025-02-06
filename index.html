@@ -14,11 +14,27 @@
       overflow: hidden;
       touch-action: none;
     }
+    #deleteButton {
+      display: none;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      background: red;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
 <button id="startButton" onclick="activateXR()">Start AR</button>
+<button id="deleteButton" onclick="deleteObject()">Delete Object</button>
 
 <script>
 let scene, previewObject, objectsPlaced = [], camera, renderer;
@@ -27,7 +43,6 @@ let selectedObject = null;
 let hitTestSource = null;
 let referenceSpace;
 let session;
-let lastTap = 0;
 let initialRotation = 0;
 let initialDistance = 0;
 
@@ -120,36 +135,18 @@ window.addEventListener("touchmove", onTouchMove);
 window.addEventListener("touchend", onTouchEnd);
 
 function onTouchStart(event) {
-  const currentTime = new Date().getTime();
-  const tapLength = currentTime - lastTap;
-  lastTap = currentTime;
-
   raycaster.setFromCamera(new THREE.Vector2((event.touches[0].clientX / window.innerWidth) * 2 - 1, -(event.touches[0].clientY / window.innerHeight) * 2 + 1), camera);
   const intersects = raycaster.intersectObjects(objectsPlaced, true);
   if (intersects.length > 0) {
     selectedObject = intersects[0].object;
-    if (tapLength < 300) {
-      scene.remove(selectedObject);
-      objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
-      selectedObject = null;
-    }
-  }
-
-  if (event.touches.length === 2 && selectedObject) {
-    initialDistance = getDistance(event.touches);
-    initialRotation = Math.atan2(
-      event.touches[0].clientY - event.touches[1].clientY,
-      event.touches[0].clientX - event.touches[1].clientX
-    );
+    document.getElementById("deleteButton").style.display = "block";
   }
 }
 
 function onTouchMove(event) {
   if (selectedObject && event.touches.length === 1) {
-    const deltaX = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
-    const deltaY = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
-    selectedObject.position.x += deltaX * 0.05;
-    selectedObject.position.y -= deltaY * 0.05;
+    selectedObject.position.x += event.touches[0].movementX * 0.001;
+    selectedObject.position.y -= event.touches[0].movementY * 0.001;
   }
   if (selectedObject && event.touches.length === 2) {
     const newDistance = getDistance(event.touches);
@@ -167,6 +164,16 @@ function onTouchMove(event) {
 
 function onTouchEnd() {
   selectedObject = null;
+  document.getElementById("deleteButton").style.display = "none";
+}
+
+function deleteObject() {
+  if (selectedObject) {
+    scene.remove(selectedObject);
+    objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
+    selectedObject = null;
+    document.getElementById("deleteButton").style.display = "none";
+  }
 }
 
 function getDistance(touches) {
