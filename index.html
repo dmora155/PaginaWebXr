@@ -15,7 +15,7 @@
 <button id="removeButton" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100;" onclick="removeObjects()">Remove Objects</button>
 
 <script>
-let scene, flower, reticle, objectsPlaced = [];
+let scene, flower, reticle, objectsPlaced = [], camera;
 
 async function activateXR() {
   const canvas = document.createElement("canvas");
@@ -35,7 +35,7 @@ async function activateXR() {
   });
   renderer.autoClear = true;
 
-  const camera = new THREE.PerspectiveCamera();
+  camera = new THREE.PerspectiveCamera();
   camera.matrixAutoUpdate = false;
 
   const session = await navigator.xr.requestSession("immersive-ar", {requiredFeatures: ['hit-test']});
@@ -60,8 +60,6 @@ async function activateXR() {
 
   document.getElementById("startButton").style.display = "none";
   document.getElementById("removeButton").style.display = "block";
-  document.getElementById("removeButton").style.position = "absolute";
-  document.getElementById("removeButton").style.zIndex = "100";
 
   session.addEventListener("select", () => {
     if (flower && reticle && reticle.visible) {
@@ -90,6 +88,13 @@ async function activateXR() {
       camera.matrix.fromArray(view.transform.matrix);
       camera.projectionMatrix.fromArray(view.projectionMatrix);
       camera.updateMatrixWorld(true);
+
+      const removeButton = document.getElementById("removeButton");
+      removeButton.style.position = "fixed";
+      removeButton.style.top = "10px";
+      removeButton.style.left = "50%";
+      removeButton.style.transform = "translateX(-50%)";
+      removeButton.style.zIndex = "100";
 
       if (!hitTestSourceRequested) {
         frame.session.requestReferenceSpace('viewer').then((viewerSpace) => {
