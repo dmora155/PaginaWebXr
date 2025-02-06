@@ -28,7 +28,6 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      display: none; /* Oculto por defecto */
     }
     .action-button:hover {
       background-color: #0056b3;
@@ -37,9 +36,10 @@
 </head>
 <body>
 
+<!-- 📌 Botones para iniciar AR y eliminar objetos -->
 <div id="controls">
   <button id="enter-ar" class="action-button" onclick="activateXR()">Start AR</button>
-  <button id="delete-object" class="action-button" onclick="removeLastObject()">Eliminar Último</button>
+  <button id="delete-object" class="action-button" onclick="removeLastObject()" style="display: none;">Eliminar Último</button>
 </div>
 
 <script>
@@ -98,7 +98,8 @@ async function activateXR() {
     hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
     console.log("✅ Hit-test creado correctamente.");
 
-    // 📌 Mostrar el botón de eliminar objetos solo en AR
+    // 📌 Ocultar el botón de iniciar AR y mostrar el de eliminar
+    document.getElementById("enter-ar").style.display = "none";
     document.getElementById("delete-object").style.display = "block";
 
     xrSession.requestAnimationFrame(onXRFrame);
