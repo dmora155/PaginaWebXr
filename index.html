@@ -14,6 +14,17 @@
       overflow: hidden;
       touch-action: none;
     }
+    #menu {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 10px;
+      z-index: 9999;
+    }
     #controls {
       position: fixed;
       top: 10px;
@@ -36,7 +47,13 @@
 </head>
 <body>
 
-<div id="controls">
+<div id="menu">
+  <h2>Select Mode</h2>
+  <button onclick="startPlacementMode()">Placement Mode</button>
+  <button onclick="startEditMode()">Edit Mode</button>
+</div>
+
+<div id="controls" style="display: none;">
   <button id="startButton" onclick="activateXR()">Start AR</button>
   <button id="editModeButton" onclick="toggleEditMode()">Toggle Edit Mode</button>
   <button id="deleteButton" onclick="deleteObject()" style="display: none;">Delete Object</button>
@@ -54,6 +71,20 @@ let isEditMode = false;
 let initialTouchDistance = 0;
 let initialScale = 1;
 let initialRotation = 0;
+let isPlacementMode = false;
+
+function startPlacementMode() {
+  isPlacementMode = true;
+  document.getElementById("menu").style.display = "none";
+  document.getElementById("controls").style.display = "flex";
+}
+
+function startEditMode() {
+  isPlacementMode = false;
+  isEditMode = true;
+  document.getElementById("menu").style.display = "none";
+  document.getElementById("controls").style.display = "flex";
+}
 
 async function activateXR() {
   const canvas = document.createElement("canvas");
@@ -90,7 +121,7 @@ async function activateXR() {
   });
 
   session.addEventListener("select", () => {
-    if (!isEditMode && previewObject && previewObject.visible) {
+    if (isPlacementMode && previewObject && previewObject.visible) {
       const clone = previewObject.clone();
       clone.position.copy(previewObject.position);
       clone.userData.isInteractable = true;
@@ -99,7 +130,6 @@ async function activateXR() {
     }
   });
 
-  document.getElementById("editModeButton").style.display = "block";
   session.requestAnimationFrame(onXRFrame);
   requestHitTestSource(session);
 }
@@ -124,7 +154,7 @@ function onXRFrame(time, frame) {
     camera.projectionMatrix.fromArray(view.projectionMatrix);
     camera.updateMatrixWorld(true);
 
-    if (hitTestSource && !isEditMode) {
+    if (hitTestSource && isPlacementMode) {
       const hitTestResults = frame.getHitTestResults(hitTestSource);
       if (hitTestResults.length > 0 && previewObject) {
         const hitPose = hitTestResults[0].getPose(referenceSpace);
@@ -142,35 +172,6 @@ function onXRFrame(time, frame) {
 function toggleEditMode() {
   isEditMode = !isEditMode;
   document.getElementById("editModeButton").innerText = isEditMode ? "Exit Edit Mode" : "Toggle Edit Mode";
-}
-
-window.addEventListener("pointerdown", onPointerDown);
-window.addEventListener("pointermove", onPointerMove);
-window.addEventListener("pointerup", onPointerUp);
-
-function onPointerDown(event) {
-  if (!isEditMode) return;
-  touch.x = (event.clientX / window.innerWidth) * 2 - 1;
-  touch.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(touch, camera);
-  const intersects = raycaster.intersectObjects(objectsPlaced, true);
-  if (intersects.length > 0) {
-    selectedObject = intersects[0].object;
-    document.getElementById("deleteButton").style.display = "block";
-    initialScale = selectedObject.scale.x;
-  }
-}
-
-function onPointerMove(event) {
-  if (selectedObject) {
-    selectedObject.position.x += event.movementX * 0.001;
-    selectedObject.position.y -= event.movementY * 0.001;
-  }
-}
-
-function onPointerUp() {
-  selectedObject = null;
-  document.getElementById("deleteButton").style.display = "none";
 }
 
 function deleteObject() {
