@@ -12,10 +12,9 @@
 <body>
 
 <button id="startButton" onclick="activateXR()">Start Hello WebXR</button>
-<button id="removeButton" style="display: none; position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 100;" onclick="removeObjects()">Remove Objects</button>
 
 <script>
-let scene, flower, reticle, objectsPlaced = [], camera;
+let scene, flower, reticle, objectsPlaced = [], camera, removeButton3D;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let controller;
@@ -62,7 +61,6 @@ async function activateXR() {
   });
 
   document.getElementById("startButton").style.display = "none";
-  document.getElementById("removeButton").style.display = "block";
 
   controller = renderer.xr.getController(0);
   controller.addEventListener("selectstart", onSelect);
@@ -79,8 +77,9 @@ async function activateXR() {
 
   session.addEventListener("end", () => {
     document.getElementById("startButton").style.display = "block";
-    document.getElementById("removeButton").style.display = "none";
   });
+
+  addRemoveButton3D();
 
   session.requestAnimationFrame(function onXRFrame(time, frame) {
     session.requestAnimationFrame(onXRFrame);
@@ -122,13 +121,26 @@ async function activateXR() {
   });
 }
 
+function addRemoveButton3D() {
+  const geometry = new THREE.PlaneGeometry(0.2, 0.1);
+  const material = new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide});
+  removeButton3D = new THREE.Mesh(geometry, material);
+  removeButton3D.position.set(0, 1.5, -1);
+  removeButton3D.userData.isButton = true;
+  scene.add(removeButton3D);
+}
+
 function onSelect() {
   raycaster.setFromCamera(pointer, camera);
-  const intersects = raycaster.intersectObjects(objectsPlaced, true);
+  const intersects = raycaster.intersectObjects(objectsPlaced.concat(removeButton3D), true);
   if (intersects.length > 0) {
     const selectedObject = intersects[0].object;
-    scene.remove(selectedObject);
-    objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
+    if (selectedObject === removeButton3D) {
+      removeObjects();
+    } else {
+      scene.remove(selectedObject);
+      objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
+    }
   }
 }
 
