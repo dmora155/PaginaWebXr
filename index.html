@@ -23,11 +23,12 @@
 <script>
 let scene, flower, reticle, objectsPlaced = [], camera, renderer;
 const raycaster = new THREE.Raycaster();
+const touchStart = new Map();
 let selectedObject = null;
 let isDragging = false;
 let hitTestSource = null;
-let hitTestSourceRequested = false;
 let referenceSpace;
+let session;
 
 async function activateXR() {
   const canvas = document.createElement("canvas");
@@ -36,7 +37,7 @@ async function activateXR() {
 
   scene = new THREE.Scene();
   
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.3);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
   directionalLight.position.set(10, 15, 10);
   scene.add(directionalLight);
 
@@ -52,7 +53,7 @@ async function activateXR() {
   camera.matrixAutoUpdate = false;
   scene.add(camera);
 
-  const session = await navigator.xr.requestSession("immersive-ar", {requiredFeatures: ['hit-test']});
+  session = await navigator.xr.requestSession("immersive-ar", {requiredFeatures: ['hit-test']});
   session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
   referenceSpace = await session.requestReferenceSpace('local');
   
@@ -78,13 +79,19 @@ async function activateXR() {
   });
 
   session.requestAnimationFrame(onXRFrame);
-  requestHitTestSource(session);
+  requestHitTestSource();
+
+  canvas.addEventListener("pointerdown", onPointerDown);
+  canvas.addEventListener("pointermove", onPointerMove);
+  canvas.addEventListener("pointerup", onPointerUp);
+  canvas.addEventListener("touchstart", onTouchStart);
+  canvas.addEventListener("touchmove", onTouchMove);
+  canvas.addEventListener("touchend", onTouchEnd);
 }
 
-async function requestHitTestSource(session) {
+async function requestHitTestSource() {
   const viewerReferenceSpace = await session.requestReferenceSpace('viewer');
   hitTestSource = await session.requestHitTestSource({ space: viewerReferenceSpace });
-  hitTestSourceRequested = true;
 }
 
 function onXRFrame(time, frame) {
@@ -122,21 +129,32 @@ function onPointerDown(event) {
   const intersects = raycaster.intersectObjects(objectsPlaced, true);
   if (intersects.length > 0) {
     selectedObject = intersects[0].object;
-    isDragging = true;
+    scene.remove(selectedObject);
+    objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
   }
 }
 
-function onPointerMove(event) {
-  if (!isDragging || !selectedObject) return;
-  const deltaX = (event.movementX || 0) * 0.01;
-  const deltaY = (event.movementY || 0) * 0.01;
-  selectedObject.position.x += deltaX;
-  selectedObject.position.y -= deltaY;
+function onTouchStart(event) {
+  if (event.touches.length === 2) {
+    const dx = event.touches[0].clientX - event.touches[1].clientX;
+    const dy = event.touches[0].clientY - event.touches[1].clientY;
+    touchStart.set("distance", Math.sqrt(dx * dx + dy * dy));
+  }
 }
 
-function onPointerUp(event) {
-  isDragging = false;
-  selectedObject = null;
+function onTouchMove(event) {
+  if (event.touches.length === 2 && selectedObject) {
+    const dx = event.touches[0].clientX - event.touches[1].clientX;
+    const dy = event.touches[0].clientY - event.touches[1].clientY;
+    const newDistance = Math.sqrt(dx * dx + dy * dy);
+    const initialDistance = touchStart.get("distance") || newDistance;
+    const scale = newDistance / initialDistance;
+    selectedObject.scale.set(scale, scale, scale);
+  }
+}
+
+function onTouchEnd(event) {
+  touchStart.clear();
 }
 </script>
 
