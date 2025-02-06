@@ -12,10 +12,11 @@
 <body>
 
 <button id="startButton" onclick="activateXR()">Start Hello WebXR</button>
-<button id="removeButton" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100;" onclick="removeObjects()">Remove Objects</button>
 
 <script>
 let scene, flower, reticle, objectsPlaced = [], camera;
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
 
 async function activateXR() {
   const canvas = document.createElement("canvas");
@@ -59,7 +60,6 @@ async function activateXR() {
   });
 
   document.getElementById("startButton").style.display = "none";
-  document.getElementById("removeButton").style.display = "block";
 
   session.addEventListener("select", () => {
     if (flower && reticle && reticle.visible) {
@@ -72,8 +72,9 @@ async function activateXR() {
 
   session.addEventListener("end", () => {
     document.getElementById("startButton").style.display = "block";
-    document.getElementById("removeButton").style.display = "none";
   });
+
+  document.addEventListener('pointerdown', onSelect);
 
   session.requestAnimationFrame(function onXRFrame(time, frame) {
     session.requestAnimationFrame(onXRFrame);
@@ -88,13 +89,6 @@ async function activateXR() {
       camera.matrix.fromArray(view.transform.matrix);
       camera.projectionMatrix.fromArray(view.projectionMatrix);
       camera.updateMatrixWorld(true);
-
-      const removeButton = document.getElementById("removeButton");
-      removeButton.style.position = "fixed";
-      removeButton.style.top = "10px";
-      removeButton.style.left = "50%";
-      removeButton.style.transform = "translateX(-50%)";
-      removeButton.style.zIndex = "100";
 
       if (!hitTestSourceRequested) {
         frame.session.requestReferenceSpace('viewer').then((viewerSpace) => {
@@ -122,9 +116,14 @@ async function activateXR() {
   });
 }
 
-function removeObjects() {
-  objectsPlaced.forEach(obj => scene.remove(obj));
-  objectsPlaced = [];
+function onSelect(event) {
+  raycaster.setFromCamera(pointer, camera);
+  const intersects = raycaster.intersectObjects(objectsPlaced, true);
+  if (intersects.length > 0) {
+    const selectedObject = intersects[0].object;
+    scene.remove(selectedObject);
+    objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
+  }
 }
 </script>
 
