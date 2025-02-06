@@ -27,6 +27,9 @@ let selectedObject = null;
 let hitTestSource = null;
 let referenceSpace;
 let session;
+let lastTap = 0;
+let initialRotation = 0;
+let initialDistance = 0;
 
 async function activateXR() {
   const canvas = document.createElement("canvas");
@@ -117,12 +120,27 @@ window.addEventListener("touchmove", onTouchMove);
 window.addEventListener("touchend", onTouchEnd);
 
 function onTouchStart(event) {
-  if (event.touches.length === 1) {
-    raycaster.setFromCamera(new THREE.Vector2((event.touches[0].clientX / window.innerWidth) * 2 - 1, -(event.touches[0].clientY / window.innerHeight) * 2 + 1), camera);
-    const intersects = raycaster.intersectObjects(objectsPlaced, true);
-    if (intersects.length > 0) {
-      selectedObject = intersects[0].object;
+  const currentTime = new Date().getTime();
+  const tapLength = currentTime - lastTap;
+  lastTap = currentTime;
+
+  raycaster.setFromCamera(new THREE.Vector2((event.touches[0].clientX / window.innerWidth) * 2 - 1, -(event.touches[0].clientY / window.innerHeight) * 2 + 1), camera);
+  const intersects = raycaster.intersectObjects(objectsPlaced, true);
+  if (intersects.length > 0) {
+    selectedObject = intersects[0].object;
+    if (tapLength < 300) {
+      scene.remove(selectedObject);
+      objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
+      selectedObject = null;
     }
+  }
+
+  if (event.touches.length === 2 && selectedObject) {
+    initialDistance = getDistance(event.touches);
+    initialRotation = Math.atan2(
+      event.touches[0].clientY - event.touches[1].clientY,
+      event.touches[0].clientX - event.touches[1].clientX
+    );
   }
 }
 
@@ -133,10 +151,28 @@ function onTouchMove(event) {
     selectedObject.position.x += deltaX * 0.05;
     selectedObject.position.y -= deltaY * 0.05;
   }
+  if (selectedObject && event.touches.length === 2) {
+    const newDistance = getDistance(event.touches);
+    const scale = newDistance / initialDistance;
+    selectedObject.scale.set(scale, scale, scale);
+
+    const newRotation = Math.atan2(
+      event.touches[0].clientY - event.touches[1].clientY,
+      event.touches[0].clientX - event.touches[1].clientX
+    );
+    selectedObject.rotation.y += newRotation - initialRotation;
+    initialRotation = newRotation;
+  }
 }
 
 function onTouchEnd() {
   selectedObject = null;
+}
+
+function getDistance(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 </script>
 
