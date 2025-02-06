@@ -12,7 +12,7 @@
 <body>
 
 <button id="startButton" onclick="activateXR()">Start Hello WebXR</button>
-<button id="removeButton" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100;" onclick="removeObjects()">Remove Objects</button>
+<button id="removeButton" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; background: red; color: white; padding: 10px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;" onclick="removeObjects()">Remove Objects</button>
 
 <script>
 let scene, flower, reticle, objectsPlaced = [], camera;
