@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebXR - Retícula Fix</title>
+  <title>WebXR - Retícula + Eliminar Objetos</title>
 
   <!-- three.js -->
   <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
@@ -18,6 +18,7 @@
       transform: translateX(-50%);
       display: flex;
       gap: 10px;
+      z-index: 1000;
     }
     .action-button {
       padding: 12px 20px;
@@ -27,6 +28,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      display: none; /* Oculto por defecto */
     }
     .action-button:hover {
       background-color: #0056b3;
@@ -37,7 +39,7 @@
 
 <div id="controls">
   <button id="enter-ar" class="action-button" onclick="activateXR()">Start AR</button>
-  <button id="delete-object" class="action-button" onclick="removeLastObject()" style="display: none;">Eliminar Último</button>
+  <button id="delete-object" class="action-button" onclick="removeLastObject()">Eliminar Último</button>
 </div>
 
 <script>
@@ -45,9 +47,8 @@ let scene, camera, renderer;
 let xrSession = null;
 let xrRefSpace = null;
 let hitTestSource = null;
-let hitTestSourceRequested = false;
-let reticle = null;
 let placedObjects = [];
+let reticle = null;
 
 const flowerUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf";
 const reticleUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf";
@@ -97,7 +98,7 @@ async function activateXR() {
     hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
     console.log("✅ Hit-test creado correctamente.");
 
-    // 📌 Mostrar botón de eliminar objetos
+    // 📌 Mostrar el botón de eliminar objetos solo en AR
     document.getElementById("delete-object").style.display = "block";
 
     xrSession.requestAnimationFrame(onXRFrame);
@@ -182,17 +183,6 @@ function onXRFrame(time, frame) {
   camera.matrix.fromArray(view.transform.matrix);
   camera.projectionMatrix.fromArray(view.projectionMatrix);
   camera.updateMatrixWorld(true);
-
-  // 📌 Procesar hit-test correctamente
-  if (!hitTestSourceRequested) {
-    frame.session.requestReferenceSpace('viewer').then((viewerSpace) => {
-      frame.session.requestHitTestSource({ space: viewerSpace }).then((source) => {
-        hitTestSource = source;
-        hitTestSourceRequested = true;
-        console.log("✅ Hit-test source creado.");
-      });
-    });
-  }
 
   if (hitTestSource) {
     const hitTestResults = frame.getHitTestResults(hitTestSource);
