@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello WebXR!</title>
+  <title>WebXR AR Object Placement</title>
 
   <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
   <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -18,15 +18,13 @@
 </head>
 <body>
 
-<button id="startButton" onclick="activateXR()">Start Hello WebXR</button>
+<button id="startButton" onclick="activateXR()">Start AR</button>
 
 <script>
 let scene, previewObject, objectsPlaced = [], camera, renderer;
 const raycaster = new THREE.Raycaster();
 let selectedObject = null;
-let isDragging = false;
 let hitTestSource = null;
-let hitTestSourceRequested = false;
 let referenceSpace;
 let session;
 
@@ -81,7 +79,6 @@ async function activateXR() {
 async function requestHitTestSource(session) {
   const viewerReferenceSpace = await session.requestReferenceSpace('viewer');
   hitTestSource = await session.requestHitTestSource({ space: viewerReferenceSpace });
-  hitTestSourceRequested = true;
 }
 
 function onXRFrame(time, frame) {
@@ -98,10 +95,6 @@ function onXRFrame(time, frame) {
     camera.matrix.fromArray(view.transform.matrix);
     camera.projectionMatrix.fromArray(view.projectionMatrix);
     camera.updateMatrixWorld(true);
-
-    if (!hitTestSourceRequested) {
-      requestHitTestSource(session);
-    }
 
     if (hitTestSource) {
       const hitTestResults = frame.getHitTestResults(hitTestSource);
