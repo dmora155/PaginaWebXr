@@ -53,6 +53,7 @@ let isDragging = false;
 let initialTouchDistance = 0;
 let initialScale = 1;
 let initialRotation = 0;
+let lastRotationAngle = 0;
 
 async function activateXR() {
   document.getElementById("controls").style.display = "flex";
@@ -133,36 +134,49 @@ function onXRFrame(time, frame) {
   renderer.render(scene, camera);
 }
 
-window.addEventListener("pointerdown", onPointerDown);
-window.addEventListener("pointermove", onPointerMove);
-window.addEventListener("pointerup", onPointerUp);
+window.addEventListener("touchstart", onTouchStart);
+window.addEventListener("touchmove", onTouchMove);
+window.addEventListener("touchend", onTouchEnd);
 
-function onPointerDown(event) {
+function onTouchStart(event) {
   if (!isObjectPlaced) return;
-  isDragging = true;
-  touch.x = (event.clientX / window.innerWidth) * 2 - 1;
-  touch.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(touch, camera);
-  const intersects = raycaster.intersectObject(objectPlaced, true);
-  if (intersects.length > 0) {
-    document.getElementById("deleteButton").style.display = "block";
+  if (event.touches.length === 1) {
+    isDragging = true;
+  } else if (event.touches.length === 2) {
+    initialTouchDistance = getDistance(event.touches);
     initialScale = objectPlaced.scale.x;
-    initialRotation = objectPlaced.rotation.y;
+    lastRotationAngle = getAngle(event.touches);
   }
 }
 
-function onPointerMove(event) {
-  if (isObjectPlaced && isDragging) {
-    objectPlaced.position.x += event.movementX * 0.001;
-    objectPlaced.position.y -= event.movementY * 0.001;
-    objectPlaced.rotation.y += event.movementX * 0.01;
-    objectPlaced.scale.set(initialScale + event.movementY * 0.01, initialScale + event.movementY * 0.01, initialScale + event.movementY * 0.01);
+function onTouchMove(event) {
+  if (!isObjectPlaced) return;
+  if (event.touches.length === 1 && isDragging) {
+    objectPlaced.position.x += event.touches[0].movementX * 0.001;
+    objectPlaced.position.y -= event.touches[0].movementY * 0.001;
+  } else if (event.touches.length === 2) {
+    const newDistance = getDistance(event.touches);
+    const scaleFactor = newDistance / initialTouchDistance;
+    objectPlaced.scale.set(initialScale * scaleFactor, initialScale * scaleFactor, initialScale * scaleFactor);
+    
+    const newAngle = getAngle(event.touches);
+    objectPlaced.rotation.y += (newAngle - lastRotationAngle) * 0.01;
+    lastRotationAngle = newAngle;
   }
 }
 
-function onPointerUp() {
+function onTouchEnd() {
   isDragging = false;
-  document.getElementById("deleteButton").style.display = "none";
+}
+
+function getDistance(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getAngle(touches) {
+  return Math.atan2(touches[0].clientY - touches[1].clientY, touches[0].clientX - touches[1].clientX);
 }
 
 function deleteObject() {
