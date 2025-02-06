@@ -19,7 +19,7 @@
     }
     #removeButton {
       position: absolute;
-      bottom: 20px;
+      top: 20px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 9999;
@@ -38,13 +38,14 @@
 
 <button id="startButton" onclick="activateXR()">Start Hello WebXR</button>
 <div id="uiContainer">
-  <button id="removeButton" style="display: none;" onclick="removeObjects()">Remove Objects</button>
+  <button id="removeButton" style="display: none;" onclick="removeSelectedObject()">Remove Selected Object</button>
 </div>
 
 <script>
 let scene, flower, reticle, objectsPlaced = [], camera;
 const raycaster = new THREE.Raycaster();
 let controller;
+let selectedObject = null;
 
 async function activateXR() {
   const canvas = document.createElement("canvas");
@@ -92,7 +93,7 @@ async function activateXR() {
   document.getElementById("removeButton").style.display = "block";
 
   controller = renderer.xr.getController(0);
-  controller.addEventListener("selectstart", onSelect);
+  controller.addEventListener("selectstart", selectObject);
   scene.add(controller);
 
   session.addEventListener("select", () => {
@@ -149,19 +150,20 @@ async function activateXR() {
   });
 }
 
-function onSelect() {
+function selectObject(event) {
   raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
   const intersects = raycaster.intersectObjects(objectsPlaced, true);
   if (intersects.length > 0) {
-    const selectedObject = intersects[0].object;
-    scene.remove(selectedObject);
-    objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
+    selectedObject = intersects[0].object;
   }
 }
 
-function removeObjects() {
-  objectsPlaced.forEach(obj => scene.remove(obj));
-  objectsPlaced = [];
+function removeSelectedObject() {
+  if (selectedObject) {
+    scene.remove(selectedObject);
+    objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
+    selectedObject = null;
+  }
 }
 </script>
 
