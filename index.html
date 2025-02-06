@@ -48,6 +48,7 @@ const touch = new THREE.Vector2();
 let hitTestSource = null;
 let referenceSpace;
 let session;
+let isObjectPlaced = false;
 let initialTouchDistance = 0;
 let initialScale = 1;
 let initialRotation = 0;
@@ -88,8 +89,8 @@ async function activateXR() {
   });
 
   session.addEventListener("select", () => {
-    if (objectPlaced && objectPlaced.visible) {
-      objectPlaced.userData.isInteractable = true;
+    if (objectPlaced && objectPlaced.visible && !isObjectPlaced) {
+      isObjectPlaced = true;
       document.getElementById("deleteButton").style.display = "block";
     }
   });
@@ -118,7 +119,7 @@ function onXRFrame(time, frame) {
     camera.projectionMatrix.fromArray(view.projectionMatrix);
     camera.updateMatrixWorld(true);
 
-    if (hitTestSource && objectPlaced) {
+    if (hitTestSource && objectPlaced && !isObjectPlaced) {
       const hitTestResults = frame.getHitTestResults(hitTestSource);
       if (hitTestResults.length > 0) {
         const hitPose = hitTestResults[0].getPose(referenceSpace);
@@ -136,6 +137,7 @@ window.addEventListener("pointermove", onPointerMove);
 window.addEventListener("pointerup", onPointerUp);
 
 function onPointerDown(event) {
+  if (!isObjectPlaced) return;
   touch.x = (event.clientX / window.innerWidth) * 2 - 1;
   touch.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(touch, camera);
@@ -147,7 +149,7 @@ function onPointerDown(event) {
 }
 
 function onPointerMove(event) {
-  if (objectPlaced) {
+  if (isObjectPlaced) {
     objectPlaced.position.x += event.movementX * 0.001;
     objectPlaced.position.y -= event.movementY * 0.001;
   }
@@ -161,6 +163,7 @@ function deleteObject() {
   if (objectPlaced) {
     scene.remove(objectPlaced);
     objectPlaced = null;
+    isObjectPlaced = false;
     document.getElementById("deleteButton").style.display = "none";
   }
 }
