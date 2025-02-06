@@ -9,7 +9,25 @@
   <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
   <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
 
-
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #enter-ar {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 20px;
+      font-size: 18px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #enter-ar:hover {
+      background-color: #0056b3;
+    }
+  </style>
 </head>
 <body>
 
@@ -27,16 +45,16 @@ const reticleUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/ret
 
 // 📌 Registrar errores globales
 window.onerror = function (message, source, lineno, colno, error) {
-  alert("❌ ERROR: " + message + " en línea " + lineno);
+  console.error("❌ ERROR:", message, "en línea", lineno);
 };
 
 window.addEventListener("unhandledrejection", event => {
-  alert("❌ PROMISE REJECTION: " + event.reason);
+  console.error("❌ PROMISE REJECTION:", event.reason);
 });
 
 // 📌 Iniciar WebXR con FIX para hit-test
 async function activateXR() {
-  alert("✅ Intentando iniciar WebXR...");
+  console.log("✅ Intentando iniciar WebXR...");
 
   if (!navigator.xr) {
     alert("❌ WebXR no es compatible en este navegador.");
@@ -44,10 +62,10 @@ async function activateXR() {
   }
 
   try {
-    alert("✅ Solicitando sesión de AR...");
+    console.log("✅ Solicitando sesión de AR...");
     xrSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test"] });
 
-    alert("✅ Sesión AR iniciada.");
+    console.log("✅ Sesión AR iniciada.");
     
     createScene();
 
@@ -65,38 +83,47 @@ async function activateXR() {
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
 
-    alert("✅ Renderer creado.");
+    console.log("✅ Renderer creado.");
 
     xrSession.updateRenderState({
       baseLayer: new XRWebGLLayer(xrSession, gl)
     });
 
-    alert("✅ baseLayer configurado correctamente.");
+    console.log("✅ baseLayer configurado correctamente.");
 
     // 📌 Crear espacio de referencia antes de usar hit-test
     xrRefSpace = await xrSession.requestReferenceSpace("local");
-    alert("✅ Espacio de referencia obtenido.");
+    console.log("✅ Espacio de referencia obtenido.");
 
-    // 📌 Verificar si el navegador soporta `hit-test`
-    if (xrSession.requestHitTestSource) {
-      const viewerSpace = await xrSession.requestReferenceSpace("viewer");
+    // 📌 Probar ambos métodos de `hit-test`
+    const viewerSpace = await xrSession.requestReferenceSpace("viewer");
+    
+    try {
       hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
-      alert("✅ Hit-test creado correctamente.");
-    } else {
-      alert("⚠ El navegador NO soporta hit-test.");
+      console.log("✅ Hit-test creado correctamente con `requestHitTestSource`.");
+    } catch (error) {
+      console.warn("⚠ `requestHitTestSource` falló, probando `requestHitTestSourceForTransientInput()`...");
+      try {
+        hitTestSource = await xrSession.requestHitTestSourceForTransientInput({ profile: "generic-touchscreen" });
+        console.log("✅ Hit-test creado con `requestHitTestSourceForTransientInput`.");
+      } catch (err) {
+        console.error("❌ Ambos métodos de hit-test fallaron.");
+        alert("❌ Este navegador no soporta `hit-test`. WebXR funcionará, pero sin detección de superficies.");
+      }
     }
 
     xrSession.requestAnimationFrame(onXRFrame);
-    alert("✅ Render Loop iniciado.");
+    console.log("✅ Render Loop iniciado.");
 
   } catch (error) {
-    alert("❌ Error al iniciar WebXR: " + error.message);
+    console.error("❌ Error al iniciar WebXR:", error);
+    alert("❌ Error en WebXR: " + error.message);
   }
 }
 
-// 📌 Crear la escena con Depuración
+// 📌 Crear la escena
 function createScene() {
-  alert("✅ Creando escena...");
+  console.log("✅ Creando escena...");
   scene = new THREE.Scene();
 
   const light = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -111,7 +138,7 @@ function createScene() {
     reticle = gltf.scene;
     reticle.visible = false;
     scene.add(reticle);
-    alert("✅ Retícula cargada.");
+    console.log("✅ Retícula cargada.");
   });
 }
 
@@ -121,11 +148,11 @@ function onXRFrame(time, frame) {
 
   const pose = frame.getViewerPose(xrRefSpace);
   if (!pose) {
-    alert("⚠ No se detecta la pose del visor.");
+    console.warn("⚠ No se detecta la pose del visor.");
     return;
   }
 
-  alert("✅ Pose detectada.");
+  console.log("✅ Pose detectada.");
 
   const view = pose.views[0];
   const viewport = xrSession.renderState.baseLayer.getViewport(view);
@@ -135,23 +162,4 @@ function onXRFrame(time, frame) {
   camera.projectionMatrix.fromArray(view.projectionMatrix);
   camera.updateMatrixWorld(true);
 
-  // 📌 Procesar hit-test para la retícula (si está disponible)
-  if (hitTestSource) {
-    const hitTestResults = frame.getHitTestResults(hitTestSource);
-    if (hitTestResults.length > 0 && reticle) {
-      const hitPose = hitTestResults[0].getPose(xrRefSpace);
-      reticle.visible = true;
-      reticle.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
-      reticle.updateMatrixWorld(true);
-      alert("🎯 Retícula detectada en: " + JSON.stringify(hitPose.transform.position));
-    } else {
-      reticle.visible = false;
-    }
-  }
-
-  renderer.render(scene, camera);
-}
-</script>
-
-</body>
-</html>
+  // 📌 Procesar 
