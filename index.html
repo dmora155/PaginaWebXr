@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebXR Debugging (Forzar WebGL)</title>
+  <title>WebXR Debugging (Hit-Test Fix)</title>
 
   <!-- three.js -->
   <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
   <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
 
+  <style>
+    body { margin: 0; background: red; }
+  </style>
 </head>
 <body>
 
@@ -33,7 +36,7 @@ window.addEventListener("unhandledrejection", event => {
   alert("❌ PROMISE REJECTION: " + event.reason);
 });
 
-// 📌 Iniciar WebXR
+// 📌 Iniciar WebXR con FIX para hit-test
 async function activateXR() {
   alert("✅ Intentando iniciar WebXR...");
 
@@ -72,12 +75,18 @@ async function activateXR() {
 
     alert("✅ baseLayer configurado correctamente.");
 
+    // 📌 Crear espacio de referencia antes de usar hit-test
     xrRefSpace = await xrSession.requestReferenceSpace("local");
     alert("✅ Espacio de referencia obtenido.");
 
-    const viewerSpace = await xrSession.requestReferenceSpace("viewer");
-    hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
-    alert("✅ Hit-test creado correctamente.");
+    // 📌 Verificar si el navegador soporta `hit-test`
+    if (xrSession.requestHitTestSource) {
+      const viewerSpace = await xrSession.requestReferenceSpace("viewer");
+      hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
+      alert("✅ Hit-test creado correctamente.");
+    } else {
+      alert("⚠ El navegador NO soporta hit-test.");
+    }
 
     xrSession.requestAnimationFrame(onXRFrame);
     alert("✅ Render Loop iniciado.");
@@ -128,10 +137,21 @@ function onXRFrame(time, frame) {
   camera.projectionMatrix.fromArray(view.projectionMatrix);
   camera.updateMatrixWorld(true);
 
-  alert("✅ Cámara actualizada.");
+  // 📌 Procesar hit-test para la retícula (si está disponible)
+  if (hitTestSource) {
+    const hitTestResults = frame.getHitTestResults(hitTestSource);
+    if (hitTestResults.length > 0 && reticle) {
+      const hitPose = hitTestResults[0].getPose(xrRefSpace);
+      reticle.visible = true;
+      reticle.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
+      reticle.updateMatrixWorld(true);
+      alert("🎯 Retícula detectada en: " + JSON.stringify(hitPose.transform.position));
+    } else {
+      reticle.visible = false;
+    }
+  }
 
   renderer.render(scene, camera);
-  alert("✅ Render completado.");
 }
 </script>
 
