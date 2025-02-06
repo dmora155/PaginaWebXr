@@ -24,8 +24,9 @@
 let scene, flower, reticle, objectsPlaced = [], camera, renderer;
 const raycaster = new THREE.Raycaster();
 let selectedObject = null;
-let touchStartDistance = 0;
 let isDragging = false;
+let initialDistance = 0;
+let initialScale = 1;
 
 async function activateXR() {
   const canvas = document.createElement("canvas");
