@@ -12,17 +12,12 @@
 <body>
 
 <button id="startButton" onclick="activateXR()">Start Hello WebXR</button>
-<button id="removeButton" style="display: none; position: absolute; top: 10px; right: 10px;" onclick="removeObjects()">Remove Objects</button>
+<button id="removeButton" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100;" onclick="removeObjects()">Remove Objects</button>
 
 <script>
 let scene, flower, reticle, objectsPlaced = [];
 
 async function activateXR() {
-  document.getElementById("startButton").style.display = "none";
-  document.getElementById("removeButton").style.display = "block";
-  document.getElementById("removeButton").style.position = "absolute";
-  document.getElementById("removeButton").style.zIndex = "100";
-
   const canvas = document.createElement("canvas");
   document.body.appendChild(canvas);
   const gl = canvas.getContext("webgl", {xrCompatible: true});
@@ -63,6 +58,9 @@ async function activateXR() {
     flower = gltf.scene;
   });
 
+  document.getElementById("startButton").style.display = "none";
+  document.getElementById("removeButton").style.display = "block";
+
   session.addEventListener("select", () => {
     if (flower && reticle && reticle.visible) {
       const clone = flower.clone();
@@ -70,6 +68,11 @@ async function activateXR() {
       scene.add(clone);
       objectsPlaced.push(clone);
     }
+  });
+
+  session.addEventListener("end", () => {
+    document.getElementById("startButton").style.display = "block";
+    document.getElementById("removeButton").style.display = "none";
   });
 
   session.requestAnimationFrame(function onXRFrame(time, frame) {
