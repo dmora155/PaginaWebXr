@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebXR - Debugging Hit-Test</title>
+  <title>WebXR - Retícula Fix</title>
 
   <!-- three.js -->
   <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
@@ -49,14 +49,7 @@ let reticle = null;
 let placedObjects = []; // 📌 Lista de objetos colocados
 
 const flowerUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf";
-
-const loader = new THREE.GLTFLoader();
-  
-loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf", function(gltf) {
-    reticle = gltf.scene;
-    reticle.visible = false; // Se hace visible solo si hay detección
-    scene.add(reticle);
-  });
+const reticleUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf";
 
 // 📌 Iniciar WebXR
 async function activateXR() {
@@ -130,7 +123,7 @@ async function activateXR() {
   }
 }
 
-// 📌 Crear la escena
+// 📌 Crear la escena y cargar la retícula
 function createScene() {
   console.log("✅ Creando escena...");
   scene = new THREE.Scene();
@@ -147,9 +140,9 @@ function createScene() {
   // 📌 Cargar la retícula
   loader.load(reticleUrl, (gltf) => {
     reticle = gltf.scene;
-    reticle.visible = false;
+    reticle.visible = false; // Inicialmente oculta
     scene.add(reticle);
-    console.log("✅ Retícula cargada.");
+    console.log("✅ Retícula cargada correctamente.");
   });
 
   // 📌 Cargar el modelo de girasol
