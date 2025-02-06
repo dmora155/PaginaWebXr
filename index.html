@@ -61,7 +61,10 @@ async function activateXR() {
   });
 
   document.getElementById("startButton").style.display = "none";
-  document.getElementById("removeButton").style.display = "block";
+
+  setTimeout(() => {
+    document.getElementById("removeButton").style.display = "block";
+  }, 2000); // Se retrasa la aparición para asegurarse de que no sea sobrepuesto
 
   controller = renderer.xr.getController(0);
   controller.addEventListener("selectstart", onSelect);
