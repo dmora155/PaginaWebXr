@@ -98,9 +98,16 @@ async function activateXR() {
     hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
     console.log("✅ Hit-test creado correctamente.");
 
-    // 📌 Ocultar el botón de iniciar AR y mostrar el de eliminar
+    // 📌 Ocultar el botón de iniciar AR y mostrar el de eliminar solo cuando AR está activo
     document.getElementById("enter-ar").style.display = "none";
     document.getElementById("delete-object").style.display = "block";
+
+    // 📌 Evento para detectar cuando la sesión de AR finaliza
+    xrSession.addEventListener("end", () => {
+      console.log("🚪 Sesión de AR finalizada.");
+      document.getElementById("enter-ar").style.display = "block";
+      document.getElementById("delete-object").style.display = "none";
+    });
 
     xrSession.requestAnimationFrame(onXRFrame);
     console.log("✅ Render Loop iniciado.");
