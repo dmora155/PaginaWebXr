@@ -12,11 +12,11 @@
 <body>
 
 <button id="startButton" onclick="activateXR()">Start Hello WebXR</button>
+<button id="removeButton" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100;" onclick="removeObjects()">Remove Objects</button>
 
 <script>
-let scene, flower, reticle, objectsPlaced = [], camera, removeButton3D;
+let scene, flower, reticle, objectsPlaced = [], camera;
 const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
 let controller;
 
 async function activateXR() {
@@ -46,7 +46,6 @@ async function activateXR() {
   session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
 
   const referenceSpace = await session.requestReferenceSpace('local');
-  const viewerSpace = await session.requestReferenceSpace('viewer');
 
   let hitTestSource = null;
   let hitTestSourceRequested = false;
@@ -63,6 +62,7 @@ async function activateXR() {
   });
 
   document.getElementById("startButton").style.display = "none";
+  document.getElementById("removeButton").style.display = "block";
 
   controller = renderer.xr.getController(0);
   controller.addEventListener("selectstart", onSelect);
@@ -79,9 +79,8 @@ async function activateXR() {
 
   session.addEventListener("end", () => {
     document.getElementById("startButton").style.display = "block";
+    document.getElementById("removeButton").style.display = "none";
   });
-
-  addRemoveButton3D();
 
   session.requestAnimationFrame(function onXRFrame(time, frame) {
     session.requestAnimationFrame(onXRFrame);
@@ -118,37 +117,18 @@ async function activateXR() {
         }
       }
 
-      // Hacer que el botón siga la vista del usuario
-      if (removeButton3D) {
-        removeButton3D.position.set(camera.position.x, camera.position.y - 0.3, camera.position.z - 1);
-        removeButton3D.lookAt(camera.position);
-      }
-
       renderer.render(scene, camera);
     }
   });
 }
 
-function addRemoveButton3D() {
-  const geometry = new THREE.PlaneGeometry(0.2, 0.1);
-  const material = new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide});
-  removeButton3D = new THREE.Mesh(geometry, material);
-  removeButton3D.position.set(0, 1.5, -1);
-  removeButton3D.userData.isButton = true;
-  scene.add(removeButton3D);
-}
-
 function onSelect() {
-  raycaster.setFromCamera(pointer, camera);
-  const intersects = raycaster.intersectObjects(objectsPlaced.concat(removeButton3D), true);
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const intersects = raycaster.intersectObjects(objectsPlaced, true);
   if (intersects.length > 0) {
     const selectedObject = intersects[0].object;
-    if (selectedObject === removeButton3D) {
-      removeObjects();
-    } else {
-      scene.remove(selectedObject);
-      objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
-    }
+    scene.remove(selectedObject);
+    objectsPlaced = objectsPlaced.filter(obj => obj !== selectedObject);
   }
 }
 
