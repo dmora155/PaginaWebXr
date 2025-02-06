@@ -49,7 +49,14 @@ let reticle = null;
 let placedObjects = []; // 📌 Lista de objetos colocados
 
 const flowerUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf";
-const reticleUrl = "https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf";
+
+const loader = new THREE.GLTFLoader();
+  
+loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf", function(gltf) {
+    reticle = gltf.scene;
+    reticle.visible = false; // Se hace visible solo si hay detección
+    scene.add(reticle);
+  });
 
 // 📌 Iniciar WebXR
 async function activateXR() {
