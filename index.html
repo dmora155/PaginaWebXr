@@ -4,91 +4,126 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WebXR AR Object Placement</title>
-  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-</head>
-<body style="margin: 0; overflow: hidden;">
 
-  <button id="startAR" onclick="startAR()" style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 10px; font-size: 16px;">
-    Activar AR
-  </button>
+  <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
+  <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
 
-  <script>
-    function startAR() {
-      document.getElementById("startAR").style.display = "none"; // Oculta el botón
-
-      // Crear dinámicamente la escena AR
-      let scene = document.createElement("a-scene");
-      scene.setAttribute("embedded", "");
-      scene.setAttribute("xr-mode-ui", "enabled: false");
-      scene.setAttribute("renderer", "logarithmicDepthBuffer: true;");
-
-      // Crear la cámara
-      let camera = document.createElement("a-camera");
-      camera.setAttribute("position", "0 1.6 0");
-      camera.innerHTML = `<a-cursor></a-cursor>`;
-      scene.appendChild(camera);
-
-      // Luz direccional
-      let light = document.createElement("a-light");
-      light.setAttribute("type", "directional");
-      light.setAttribute("position", "1 1 1");
-      light.setAttribute("intensity", "1");
-      scene.appendChild(light);
-
-      // Modelo 3D interactivo
-      let object = document.createElement("a-entity");
-      object.setAttribute("id", "objectPlaced");
-      object.setAttribute("gltf-model", "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf");
-      object.setAttribute("position", "0 0 -2");
-      object.setAttribute("scale", "0.5 0.5 0.5");
-      object.setAttribute("rotation", "0 180 0");
-      object.setAttribute("gesture-handler", "");
-      scene.appendChild(object);
-
-      // Agregar la escena al body
-      document.body.appendChild(scene);
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      touch-action: none;
     }
+    #controls {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
 
-    // Componente para manipular el objeto con gestos
-    AFRAME.registerComponent('gesture-handler', {
-      init: function () {
-        let el = this.el;
-        let scale = 1;
-        let rotationY = 0;
-        let lastTouchDistance = null;
+<div id="controls">
+  <button id="startButton" onclick="activateXR()">Activar AR</button>
+</div>
 
-        this.el.sceneEl.addEventListener('touchstart', function (event) {
-          if (event.touches.length === 2) {
-            lastTouchDistance = getDistance(event.touches[0], event.touches[1]);
-          }
-        });
+<script>
+let scene, camera, renderer, session;
+let objectPlaced = null;
+let hitTestSource = null;
+let referenceSpace;
+let isObjectPlaced = false;
 
-        this.el.sceneEl.addEventListener('touchmove', function (event) {
-          if (event.touches.length === 1) {
-            // Rotación
-            let deltaX = event.touches[0].clientX - window.innerWidth / 2;
-            rotationY += deltaX * 0.1;
-            el.setAttribute('rotation', `0 ${rotationY} 0`);
-          } else if (event.touches.length === 2) {
-            // Escalar con dos dedos
-            let currentDistance = getDistance(event.touches[0], event.touches[1]);
-            if (lastTouchDistance) {
-              let scaleChange = currentDistance / lastTouchDistance;
-              scale *= scaleChange;
-              el.setAttribute('scale', `${scale} ${scale} ${scale}`);
-            }
-            lastTouchDistance = currentDistance;
-          }
-        });
+async function activateXR() {
+  document.getElementById("controls").style.display = "none"; // Oculta el botón
 
-        function getDistance(touch1, touch2) {
-          let dx = touch1.clientX - touch2.clientX;
-          let dy = touch1.clientY - touch2.clientY;
-          return Math.sqrt(dx * dx + dy * dy);
-        }
+  const canvas = document.createElement("canvas");
+  document.body.appendChild(canvas);
+  const gl = canvas.getContext("webgl", {xrCompatible: true});
+
+  scene = new THREE.Scene();
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  directionalLight.position.set(10, 15, 10);
+  scene.add(directionalLight);
+
+  renderer = new THREE.WebGLRenderer({alpha: true, canvas, context: gl});
+  renderer.autoClear = true;
+  renderer.xr.enabled = true;
+
+  camera = new THREE.PerspectiveCamera();
+  camera.matrixAutoUpdate = false;
+  scene.add(camera);
+
+  session = await navigator.xr.requestSession("immersive-ar", {requiredFeatures: ['hit-test']});
+  session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
+  referenceSpace = await session.requestReferenceSpace('local');
+
+  const loader = new THREE.GLTFLoader();
+  loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf", function(gltf) {
+    objectPlaced = gltf.scene;
+    objectPlaced.visible = false;
+    scene.add(objectPlaced);
+  });
+
+  session.addEventListener("select", placeObject);
+  
+  session.requestAnimationFrame(onXRFrame);
+  requestHitTestSource(session);
+}
+
+async function requestHitTestSource(session) {
+  const viewerReferenceSpace = await session.requestReferenceSpace('viewer');
+  hitTestSource = await session.requestHitTestSource({ space: viewerReferenceSpace });
+}
+
+function placeObject() {
+  if (objectPlaced && !isObjectPlaced) {
+    isObjectPlaced = true;
+    objectPlaced.visible = true;
+  }
+}
+
+function onXRFrame(time, frame) {
+  session.requestAnimationFrame(onXRFrame);
+  const gl = renderer.getContext();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, session.renderState.baseLayer.framebuffer);
+
+  const pose = frame.getViewerPose(referenceSpace);
+  if (pose) {
+    const view = pose.views[0];
+    const viewport = session.renderState.baseLayer.getViewport(view);
+    renderer.setSize(viewport.width, viewport.height);
+
+    camera.matrix.fromArray(view.transform.matrix);
+    camera.projectionMatrix.fromArray(view.projectionMatrix);
+    camera.updateMatrixWorld(true);
+
+    if (hitTestSource && objectPlaced && !isObjectPlaced) {
+      const hitTestResults = frame.getHitTestResults(hitTestSource);
+      if (hitTestResults.length > 0) {
+        const hitPose = hitTestResults[0].getPose(referenceSpace);
+        objectPlaced.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
+        objectPlaced.updateMatrixWorld(true);
       }
-    });
-  </script>
+    }
+  }
+  renderer.render(scene, camera);
+}
+</script>
+
 </body>
 </html>
