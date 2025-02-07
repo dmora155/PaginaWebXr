@@ -126,6 +126,7 @@ function placeObject() {
   if (!isObjectPlaced && objectPreview) {
     objectPlaced = objectPreview.clone();
     objectPlaced.visible = true;
+    objectPlaced.userData.draggable = true;
     scene.add(objectPlaced);
     isObjectPlaced = true;
   }
@@ -134,6 +135,7 @@ function placeObject() {
 // **5️⃣ Mover, escalar y rotar el objeto con gestos táctiles**
 window.addEventListener("touchstart", onTouchStart);
 window.addEventListener("touchmove", onTouchMove);
+window.addEventListener("touchend", onTouchEnd);
 
 function onTouchStart(event) {
   if (!isObjectPlaced) return;
@@ -149,11 +151,14 @@ function onTouchMove(event) {
   if (!isObjectPlaced) return;
 
   if (event.touches.length === 1) {
-    // **Rotar**
+    // **Mover el objeto**
     let deltaX = event.touches[0].clientX - lastTouchX;
-    rotationY += deltaX * 0.1;
-    objectPlaced.rotation.y = THREE.MathUtils.degToRad(rotationY);
+    objectPlaced.position.x += deltaX * 0.002;
     lastTouchX = event.touches[0].clientX;
+
+    // **Rotar**
+    rotationY += deltaX * 0.5;
+    objectPlaced.rotation.y = THREE.MathUtils.degToRad(rotationY);
   } else if (event.touches.length === 2) {
     // **Escalar**
     let currentDistance = getDistance(event.touches[0], event.touches[1]);
@@ -162,6 +167,11 @@ function onTouchMove(event) {
     objectPlaced.scale.set(scale, scale, scale);
     lastTouchDistance = currentDistance;
   }
+}
+
+function onTouchEnd() {
+  lastTouchX = 0;
+  lastTouchDistance = 0;
 }
 
 function getDistance(touch1, touch2) {
