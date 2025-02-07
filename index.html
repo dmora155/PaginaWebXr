@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Experiencia AR con Conversión Universal a Centímetros</title>
+    <title>Experiencia AR con Conversión a Centímetros</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://threejs.org/examples/js/exporters/GLTFExporter.js"></script>
@@ -34,7 +34,7 @@
     </style>
 </head>
 <body>
-    <h1>Experiencia AR con Conversión Universal a Centímetros</h1>
+    <h1>Experiencia AR con Conversión a Centímetros</h1>
     <p>Elige un objeto y míralo en AR con la escala corregida.</p>
 
     <div>
@@ -55,6 +55,10 @@
         function openAR(objectKey) {
             const modelUrl = objects[objectKey];
 
+            // Abre Scene Viewer inmediatamente sin esperar la conversión
+            openInSceneViewer(modelUrl);
+
+            // Analiza la escala en segundo plano
             detectAndConvertToCm(modelUrl, objectKey);
         }
 
@@ -66,45 +70,24 @@
                 const boundingBox = new THREE.Box3().setFromObject(model);
                 const size = boundingBox.getSize(new THREE.Vector3());
 
-                // Detectar la unidad original (suponiendo que el mayor lado define la unidad)
                 const maxDimension = Math.max(size.x, size.y, size.z);
                 let scaleFactor = 1;
 
                 if (maxDimension > 100) {
-                    scaleFactor = 0.1; // Posible unidad: milímetros
+                    scaleFactor = 0.1;
                 } else if (maxDimension > 10) {
-                    scaleFactor = 1; // Posible unidad: centímetros
+                    scaleFactor = 1;
                 } else if (maxDimension > 1) {
-                    scaleFactor = 10; // Posible unidad: decímetros
+                    scaleFactor = 10;
                 } else {
-                    scaleFactor = 100; // Posible unidad: metros
+                    scaleFactor = 100;
                 }
 
-                // Ajustar la escala para convertir a centímetros
                 model.scale.set(scaleFactor, scaleFactor, scaleFactor);
-                console.log(`Modelo ${objectKey} escalado con factor ${scaleFactor} para convertir a centímetros.`);
-                
-                exportAndOpenAR(model, modelUrl.endsWith(".glb") ? "glb" : "gltf");
+                console.log(`Modelo ${objectKey} convertido con factor ${scaleFactor} a centímetros.`);
             }, undefined, function (error) {
                 console.error("Error al cargar el modelo:", error);
-                openInSceneViewer(modelUrl);
             });
-        }
-
-        function exportAndOpenAR(model, format) {
-            const exporter = new THREE.GLTFExporter();
-            const options = format === "glb" ? { binary: true } : { binary: false };
-
-            exporter.parse(model, function (gltf) {
-                let blob;
-                if (format === "glb") {
-                    blob = new Blob([gltf], { type: "model/gltf-binary" });
-                } else {
-                    blob = new Blob([JSON.stringify(gltf)], { type: "application/json" });
-                }
-                const url = URL.createObjectURL(blob);
-                openInSceneViewer(url);
-            }, options);
         }
 
         function openInSceneViewer(modelUrl) {
