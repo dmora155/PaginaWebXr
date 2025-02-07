@@ -17,6 +17,7 @@
 
     let xrHelper;
     let objectPlaced = null;
+    let isObjectPlaced = false;
     let isDragging = false;
     let initialDistance = 0;
     let initialScale = 1;
@@ -39,15 +40,21 @@
       });
       
       hitTest.onHitTestResultObservable.add((results) => {
-        if (results.length && objectPlaced && !objectPlaced.isVisible) {
+        if (results.length && objectPlaced && !isObjectPlaced) {
           objectPlaced.isVisible = true;
           objectPlaced.position.copyFrom(results[0].transformationMatrix.getTranslation());
         }
       });
     }
 
+    function placeObject(event) {
+      if (isObjectPlaced || !objectPlaced) return;
+      objectPlaced.isVisible = true;
+      isObjectPlaced = true;
+    }
+
     function handlePointer(event) {
-      if (!objectPlaced) return;
+      if (!isObjectPlaced || !objectPlaced) return;
       if (event.type === "pointerdown") {
         isDragging = true;
       } else if (event.type === "pointermove" && isDragging) {
@@ -85,6 +92,7 @@
     canvas.addEventListener("pointerdown", handlePointer);
     canvas.addEventListener("pointermove", handlePointer);
     canvas.addEventListener("pointerup", handlePointer);
+    canvas.addEventListener("touchstart", placeObject);
     
     initXR();
   </script>
