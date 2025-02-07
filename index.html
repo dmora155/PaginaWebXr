@@ -8,7 +8,9 @@
   <script src="https://cdn.jsdelivr.net/npm/aframe-xr@0.1.0/dist/aframe-xr.min.js"></script>
 </head>
 <body>
-  <a-scene embedded arjs>
+  <button id="startAR" onclick="startAR()" style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 10px; font-size: 16px;">Start AR</button>
+  
+  <a-scene embedded arjs id="arScene" style="display: none;">
     <!-- Cámara AR -->
     <a-camera position="0 1.6 0"></a-camera>
 
@@ -25,7 +27,14 @@
   <script>
     let objectPlaced = document.getElementById("objectPlaced");
     let placeButton = document.getElementById("placeButton");
+    let arScene = document.getElementById("arScene");
+    let startARButton = document.getElementById("startAR");
     let isObjectPlaced = false;
+
+    function startAR() {
+      startARButton.style.display = "none";
+      arScene.style.display = "block";
+    }
 
     function placeObject() {
       if (isObjectPlaced) return;
