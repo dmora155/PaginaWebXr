@@ -27,7 +27,9 @@ let referenceSpace;
 let session;
 let isObjectPlaced = false;
 let selectedObject = null;
-let touchStartTime = 0;
+let initialTouchDistance = 0;
+let initialScale = 1;
+let lastRotationAngle = 0;
 
 async function activateXR() {
   const canvas = document.createElement("canvas");
@@ -113,43 +115,51 @@ window.addEventListener("touchend", onTouchEnd);
 
 function onTouchStart(event) {
   if (!isObjectPlaced) return;
-  touchStartTime = Date.now();
-  
-  touch.x = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
-  touch.y = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(touch, camera);
-  const intersects = raycaster.intersectObject(objectPlaced, true);
-  
-  if (intersects.length > 0) {
-    selectedObject = objectPlaced;
+  if (event.touches.length === 1) {
+    touch.x = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
+    touch.y = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(touch, camera);
+    const intersects = raycaster.intersectObject(objectPlaced, true);
+    if (intersects.length > 0) {
+      selectedObject = objectPlaced;
+    }
+  } else if (event.touches.length === 2) {
+    initialTouchDistance = getDistance(event.touches);
+    initialScale = selectedObject.scale.x;
+    lastRotationAngle = getAngle(event.touches);
   }
 }
 
 function onTouchMove(event) {
   if (!selectedObject) return;
-  selectedObject.position.x += event.touches[0].movementX * 0.001;
-  selectedObject.position.y -= event.touches[0].movementY * 0.001;
+  if (event.touches.length === 1) {
+    selectedObject.position.x += event.touches[0].movementX * 0.001;
+    selectedObject.position.y -= event.touches[0].movementY * 0.001;
+  } else if (event.touches.length === 2) {
+    const newDistance = getDistance(event.touches);
+    const scaleFactor = newDistance / initialTouchDistance;
+    selectedObject.scale.set(initialScale * scaleFactor, initialScale * scaleFactor, initialScale * scaleFactor);
+    
+    const newAngle = getAngle(event.touches);
+    selectedObject.rotation.y += (newAngle - lastRotationAngle) * 0.01;
+    lastRotationAngle = newAngle;
+  }
 }
 
 function onTouchEnd(event) {
-  if (!selectedObject) return;
-  const touchDuration = Date.now() - touchStartTime;
-  
-  if (touchDuration > 500) {
-    console.log("Long press detected - object selected for editing");
-  }
-  if (touchDuration < 300 && event.touches.length === 0) {
-    console.log("Double tap detected - object deleted");
-    deleteObject();
+  if (event.touches.length === 0 && selectedObject) {
+    selectedObject = null;
   }
 }
 
-function deleteObject() {
-  if (selectedObject) {
-    scene.remove(selectedObject);
-    selectedObject = null;
-    isObjectPlaced = false;
-  }
+function getDistance(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getAngle(touches) {
+  return Math.atan2(touches[0].clientY - touches[1].clientY, touches[0].clientX - touches[1].clientX);
 }
 </script>
 
