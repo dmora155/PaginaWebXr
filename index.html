@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WebXR AR Object Placement with A-Frame</title>
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-  <script src="https://ar-js-org.github.io/AR.js/aframe/build/aframe-ar.min.js"></script>
+  <script src="https://jeromeetienne.github.io/AR.js/aframe/build/aframe-ar.min.js"></script>
 </head>
 <body>
   <button id="startAR" onclick="startAR()" style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 10px; font-size: 16px;">Start AR</button>
   
-  <a-scene embedded arjs="sourceType: webcam;" id="arScene" style="display: none;">
+  <a-scene embedded arjs id="arScene" style="display: none;">
     <!-- Cámara AR -->
     <a-marker-camera preset='hiro'></a-marker-camera>
     
@@ -18,32 +18,18 @@
     <a-light type="directional" position="1 1 1" intensity="1"></a-light>
 
     <!-- Modelo 3D (Girasol) -->
-    <a-entity id="objectPlaced" gltf-model="https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf" position="0 0 -2" visible="false"></a-entity>
-
-    <!-- Botón para colocar objeto -->
-    <a-entity id="placeButton" position="0 1.5 -3" geometry="primitive: plane; height: 0.5; width: 1.5" material="color: blue" text="value: Colocar Objeto; align: center" onclick="placeObject()"></a-entity>
+    <a-entity id="objectPlaced" gltf-model="https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf" position="0 0 0" scale="0.5 0.5 0.5">
+      <a-animation attribute="rotation" to="0 360 0" dur="5000" repeat="indefinite"></a-animation>
+    </a-entity>
   </a-scene>
 
   <script>
-    let objectPlaced = document.getElementById("objectPlaced");
-    let placeButton = document.getElementById("placeButton");
     let arScene = document.getElementById("arScene");
     let startARButton = document.getElementById("startAR");
-    let isObjectPlaced = false;
 
     function startAR() {
       startARButton.style.display = "none";
       arScene.style.display = "block";
-      setTimeout(() => {
-        document.querySelector("a-scene").setAttribute("arjs", "sourceType: webcam;");
-      }, 1000);
-    }
-
-    function placeObject() {
-      if (isObjectPlaced) return;
-      objectPlaced.setAttribute("visible", true);
-      isObjectPlaced = true;
-      placeButton.setAttribute("visible", false);
     }
   </script>
 </body>
