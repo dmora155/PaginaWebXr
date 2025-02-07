@@ -114,4 +114,51 @@ function onXRFrame(time, frame) {
       if (hitTestResults.length > 0) {
         const hitPose = hitTestResults[0].getPose(referenceSpace);
         objectPreview.visible = true;
-        objectPreview.position.set(hitPose.transform.position.x, hitPose.tra
+        objectPreview.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
+      }
+    }
+  }
+  renderer.render(scene, camera);
+}
+
+// **4️⃣ Colocar el objeto en la superficie**
+function placeObject() {
+  if (!isObjectPlaced && objectPreview) {
+    objectPlaced = objectPreview.clone();
+    objectPlaced.visible = true;
+    objectPlaced.userData.draggable = true;
+    scene.add(objectPlaced);
+    isObjectPlaced = true;
+  }
+}
+
+// **5️⃣ Mover, escalar y rotar el objeto con gestos táctiles**
+window.addEventListener("touchstart", onTouchStart);
+window.addEventListener("touchmove", onTouchMove);
+window.addEventListener("touchend", onTouchEnd);
+
+function onTouchStart(event) {
+  if (!isObjectPlaced) return;
+
+  if (event.touches.length === 1) {
+    lastTouchX = event.touches[0].clientX;
+  } else if (event.touches.length === 2) {
+    lastTouchDistance = getDistance(event.touches[0], event.touches[1]);
+  }
+}
+
+function onTouchMove(event) {
+  if (!isObjectPlaced) return;
+
+  if (event.touches.length === 1) {
+    // **Mover el objeto**
+    let deltaX = event.touches[0].clientX - lastTouchX;
+    objectPlaced.position.x += deltaX * 0.002;
+    lastTouchX = event.touches[0].clientX;
+
+    // **Rotar**
+    rotationY += deltaX * 0.5;
+    objectPlaced.rotation.y = THREE.MathUtils.degToRad(rotationY);
+  } else if (event.touches.length === 2) {
+    // **Escalar**
+    let current
