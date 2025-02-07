@@ -30,6 +30,7 @@ let selectedObject = null;
 let initialTouchDistance = 0;
 let initialScale = 1;
 let lastRotationAngle = 0;
+let isDragging = false;
 
 async function activateXR() {
   const canvas = document.createElement("canvas");
@@ -121,11 +122,17 @@ function onTouchStart(event) {
   const intersects = raycaster.intersectObject(objectPlaced, true);
   if (intersects.length > 0) {
     selectedObject = objectPlaced;
+    isDragging = true;
+    if (event.touches.length === 2) {
+      initialTouchDistance = getDistance(event.touches);
+      initialScale = selectedObject.scale.x;
+      lastRotationAngle = getAngle(event.touches);
+    }
   }
 }
 
 function onTouchMove(event) {
-  if (!selectedObject) return;
+  if (!selectedObject || !isDragging) return;
   if (event.touches.length === 1) {
     selectedObject.position.x += event.touches[0].movementX * 0.001;
     selectedObject.position.y -= event.touches[0].movementY * 0.001;
@@ -142,6 +149,7 @@ function onTouchMove(event) {
 
 function onTouchEnd(event) {
   if (event.touches.length === 0) {
+    isDragging = false;
     selectedObject = null;
   }
 }
