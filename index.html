@@ -15,48 +15,52 @@
     let objectPlaced = null;
     let isObjectPlaced = false;
     let hitTestSource = null;
-    let hitTestSourceRequested = false;
     let referenceSpace;
-    let isDragging = false;
-    let initialTouchDistance = 0;
-    let initialScale = 1;
-    let lastRotationAngle = 0;
 
     async function activateXR() {
-      document.getElementById("startButton").style.display = "none";
+      if (!navigator.xr) {
+        alert("WebXR no es compatible en este dispositivo");
+        return;
+      }
+      
+      try {
+        document.getElementById("startButton").style.display = "none";
+        const canvas = document.createElement("canvas");
+        document.body.appendChild(canvas);
+        renderer = new THREE.WebGLRenderer({ alpha: true, canvas: canvas });
+        renderer.xr.enabled = true;
 
-      const canvas = document.createElement("canvas");
-      document.body.appendChild(canvas);
-      renderer = new THREE.WebGLRenderer({ alpha: true, canvas: canvas });
-      renderer.xr.enabled = true;
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera();
+        scene.add(camera);
 
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera();
-      scene.add(camera);
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(10, 10, 10);
+        scene.add(light);
 
-      const light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(10, 10, 10);
-      scene.add(light);
+        const session = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ['hit-test'] });
+        renderer.xr.setSession(session);
 
-      const session = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ['hit-test'] });
-      renderer.xr.setSession(session);
+        referenceSpace = await session.requestReferenceSpace('local');
+        const viewerSpace = await session.requestReferenceSpace('viewer');
+        hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
 
-      referenceSpace = await session.requestReferenceSpace('local');
-      const viewerSpace = await session.requestReferenceSpace('viewer');
-      hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+        controller = renderer.xr.getController(0);
+        controller.addEventListener("select", placeObject);
+        scene.add(controller);
 
-      controller = renderer.xr.getController(0);
-      controller.addEventListener("select", placeObject);
-      scene.add(controller);
+        const loader = new THREE.GLTFLoader();
+        loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf", function(gltf) {
+          objectPlaced = gltf.scene;
+          objectPlaced.visible = false;
+          scene.add(objectPlaced);
+        });
 
-      const loader = new THREE.GLTFLoader();
-      loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf", function(gltf) {
-        objectPlaced = gltf.scene;
-        objectPlaced.visible = false;
-        scene.add(objectPlaced);
-      });
-
-      renderer.setAnimationLoop(render);
+        renderer.setAnimationLoop(render);
+      } catch (error) {
+        console.error("Error iniciando WebXR: ", error);
+        alert("No se pudo iniciar WebXR. Verifica los permisos de la cámara y la compatibilidad del dispositivo.");
+      }
     }
 
     function placeObject() {
@@ -68,6 +72,7 @@
     function render(timestamp, frame) {
       if (frame) {
         const session = renderer.xr.getSession();
+        if (!session) return;
         const pose = frame.getViewerPose(referenceSpace);
         if (pose) {
           const view = pose.views[0];
