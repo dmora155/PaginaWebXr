@@ -38,6 +38,7 @@
         <button onclick="viewInAR('coin')">Moneda</button>
         <button onclick="viewInAR('mushroom')">Hongo</button>
         <button onclick="viewInAR('star')">Estrella</button>
+        <button onclick="viewInAR('lamp')">Lámpara</button> <!-- Nuevo botón -->
     </div>
 
     <div id="ar-container"></div>
@@ -45,8 +46,9 @@
     <script>
         const objects = {
             coin: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Obj[…]?alt=media&token=c51a29e1-9b0d-48d6-af92-a6efba6a40ac",
-            mushroom: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Mushroom.glb",
-            star: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Star.glb"
+            mushroom: "https://tudominio.web.app/super_mario_bros_mushroom.glb",
+            star: "https://tudominio.web.app/super_mario_bros_star.glb",
+            lamp: "https://tudominio.web.app/tu_lampara.glb" // Reemplaza con el link de Firebase
         };
 
         function viewInAR(objectKey) {
