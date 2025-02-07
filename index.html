@@ -33,15 +33,10 @@
         disablePermanentHitTest: false
       });
       
-      const assetManager = new BABYLON.AssetsManager(scene);
-      let meshTask = assetManager.addMeshTask("loadObject", "", "https://assets.babylonjs.com/meshes/", "sunflower.glb");
-      
-      meshTask.onSuccess = function(task) {
-        objectPlaced = task.loadedMeshes[0];
+      BABYLON.SceneLoader.ImportMesh("", "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/", "sunflower.gltf", scene, function(meshes) {
+        objectPlaced = meshes[0];
         objectPlaced.isVisible = false;
-        scene.onPointerObservable.add(handlePointer);
-      };
-      assetManager.load();
+      });
       
       hitTest.onHitTestResultObservable.add((results) => {
         if (results.length && objectPlaced && !objectPlaced.isVisible) {
@@ -51,9 +46,9 @@
       });
     }
 
-    function handlePointer(eventData) {
-      let event = eventData.event;
-      if (event.type === "pointerdown" && objectPlaced) {
+    function handlePointer(event) {
+      if (!objectPlaced) return;
+      if (event.type === "pointerdown") {
         isDragging = true;
       } else if (event.type === "pointermove" && isDragging) {
         objectPlaced.position.x += event.movementX * 0.001;
@@ -86,6 +81,10 @@
     window.addEventListener("resize", () => {
       engine.resize();
     });
+    
+    canvas.addEventListener("pointerdown", handlePointer);
+    canvas.addEventListener("pointermove", handlePointer);
+    canvas.addEventListener("pointerup", handlePointer);
     
     initXR();
   </script>
