@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Experiencia AR con Conversión de Unidades</title>
+    <title>Experiencia AR en Android</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
     <style>
@@ -37,9 +37,9 @@
     <p>Elige un objeto y míralo en AR con la escala corregida.</p>
 
     <div>
-        <button onclick="loadModelAndOpenAR('coin')">Moneda</button>
-        <button onclick="loadModelAndOpenAR('mushroom')">Hongo</button>
-        <button onclick="loadModelAndOpenAR('star')">Estrella</button>
+        <button onclick="openAR('coin')">Moneda</button>
+        <button onclick="openAR('mushroom')">Hongo</button>
+        <button onclick="openAR('star')">Estrella</button>
     </div>
 
     <div id="ar-container"></div>
@@ -51,42 +51,40 @@
             star: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf"
         };
 
-        function loadModelAndOpenAR(objectKey) {
+        function openAR(objectKey) {
             const modelUrl = objects[objectKey];
-            const loader = new THREE.GLTFLoader();
 
-            loader.load(modelUrl, function (gltf) {
-                const model = gltf.scene;
-                const scale = model.scale.x; // Obtener la escala original
+            // 🔹 Abre Scene Viewer inmediatamente sin esperar three.js
+            openInSceneViewer(modelUrl);
 
-                console.log(`📏 Escala detectada del modelo (${objectKey}): ${scale}`);
-
-                // Mostrar alerta si el modelo está en metros
-                if (scale <= 1) {
-                    alert(`El modelo parece estar en METROS. Puedes convertirlo a centímetros manualmente en el archivo GLB si es necesario.`);
-                } else {
-                    alert(`El modelo ya está en centímetros.`);
-                }
-
-                // Abrir directamente Scene Viewer con el modelo sin esperar ajustes
-                openInSceneViewer(modelUrl);
-            }, undefined, function (error) {
-                console.error("Error cargando el modelo:", error);
-                alert("Hubo un problema al cargar el modelo.");
-                openInSceneViewer(modelUrl); // Intenta abrir Scene Viewer de todas formas
-            });
+            // 🔹 Intenta cargar el modelo en three.js para detectar la escala (pero no bloquea Scene Viewer)
+            detectScale(modelUrl, objectKey);
         }
 
         function openInSceneViewer(modelUrl) {
             const arLink = document.createElement("a");
             arLink.setAttribute("href", `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`);
             arLink.setAttribute("rel", "ar");
-            arLink.innerHTML = `<img src="ar_icon.png" width="100" alt="Ver en AR">`;
+            arLink.click(); // 🔹 Abre directamente Scene Viewer
+        }
 
-            const arContainer = document.getElementById("ar-container");
-            arContainer.innerHTML = "";
-            arContainer.appendChild(arLink);
-            arLink.click();
+        function detectScale(modelUrl, objectKey) {
+            const loader = new THREE.GLTFLoader();
+
+            loader.load(modelUrl, function (gltf) {
+                const model = gltf.scene;
+                const scale = model.scale.x; // Obtiene la escala del modelo
+
+                console.log(`📏 Escala detectada para ${objectKey}: ${scale}`);
+
+                if (scale <= 1) {
+                    alert(`🔄 ${objectKey} parece estar en METROS. Si es necesario, puedes convertirlo a centímetros en Blender.`);
+                } else {
+                    alert(`✅ ${objectKey} ya está en centímetros.`);
+                }
+            }, undefined, function (error) {
+                console.error("❌ Error al cargar el modelo:", error);
+            });
         }
     </script>
 </body>
