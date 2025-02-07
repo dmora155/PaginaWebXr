@@ -3,23 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Model Viewer AR</title>
-    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <title>Experiencia AR en Android</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f8f8;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #ffcc00;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #ffbb00;
+        }
+        #ar-container {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Ver en AR</h1>
-    <model-viewer 
-        id="arViewer"
-        src="https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.glb"
-        ar
-        ar-modes="scene-viewer webxr quick-look"
-        camera-controls
-        auto-rotate>
-    </model-viewer>
+    <h1>Experiencia AR en Android</h1>
+    <p>Elige un objeto y míralo en AR.</p>
 
-    <button onclick="changeModel('coin')">Moneda</button>
-    <button onclick="changeModel('mushroom')">Hongo</button>
-    <button onclick="changeModel('star')">Estrella</button>
+    <div>
+        <button onclick="viewInAR('coin')">Moneda</button>
+        <button onclick="viewInAR('mushroom')">Hongo</button>
+        <button onclick="viewInAR('star')">Estrella</button>
+    </div>
+
+    <div id="ar-container"></div>
 
     <script>
         const objects = {
@@ -28,8 +49,17 @@
             star: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Star.glb"
         };
 
-        function changeModel(objectKey) {
-            document.getElementById("arViewer").setAttribute("src", objects[objectKey]);
+        function viewInAR(objectKey) {
+            const modelUrl = objects[objectKey];
+            const arLink = document.createElement("a");
+            arLink.setAttribute("href", `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`);
+            arLink.setAttribute("rel", "ar");
+            arLink.innerHTML = `<img src="${objectKey}.png" width="100" alt="Ver en AR">`;
+            
+            const arContainer = document.getElementById("ar-container");
+            arContainer.innerHTML = ""; 
+            arContainer.appendChild(arLink);
+            arLink.click(); // Simula un clic para abrir AR automáticamente
         }
     </script>
 </body>
