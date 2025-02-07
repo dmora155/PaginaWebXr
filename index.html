@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Experiencia AR en Android</title>
+    <title>Experiencia AR con Conversión de Unidades</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -31,13 +33,13 @@
     </style>
 </head>
 <body>
-    <h1>Experiencia AR en Android</h1>
-    <p>Elige un objeto y míralo en AR.</p>
+    <h1>Experiencia AR con Conversión de Unidades</h1>
+    <p>Elige un objeto y míralo en AR con la escala corregida.</p>
 
     <div>
-        <button onclick="viewInAR('coin')">Moneda</button>
-        <button onclick="viewInAR('mushroom')">Hongo</button>
-        <button onclick="viewInAR('star')">Estrella</button>
+        <button onclick="loadAndConvertModel('coin')">Moneda</button>
+        <button onclick="loadAndConvertModel('mushroom')">Hongo</button>
+        <button onclick="loadAndConvertModel('star')">Estrella</button>
     </div>
 
     <div id="ar-container"></div>
@@ -49,17 +51,37 @@
             star: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf"
         };
 
-        function viewInAR(objectKey) {
+        function loadAndConvertModel(objectKey) {
             const modelUrl = objects[objectKey];
+            const loader = new THREE.GLTFLoader();
+
+            loader.load(modelUrl, function (gltf) {
+                const model = gltf.scene;
+                const scale = model.scale.x; // Obtener la escala original
+
+                console.log(`📏 Escala original del modelo (${objectKey}): ${scale}`);
+
+                // Si el modelo está en metros (1m = 100cm), convertirlo a centímetros
+                if (scale <= 1) {
+                    console.log(`🔄 Convertido a centímetros (${objectKey}): x100`);
+                    model.scale.set(scale * 100, scale * 100, scale * 100);
+                }
+
+                // Crear el nuevo enlace corregido para Scene Viewer
+                openInSceneViewer(modelUrl);
+            });
+        }
+
+        function openInSceneViewer(modelUrl) {
             const arLink = document.createElement("a");
             arLink.setAttribute("href", `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`);
             arLink.setAttribute("rel", "ar");
-            arLink.innerHTML = `<img src="${objectKey}.png" width="100" alt="Ver en AR">`;
-            
+            arLink.innerHTML = `<img src="ar_icon.png" width="100" alt="Ver en AR">`;
+
             const arContainer = document.getElementById("ar-container");
-            arContainer.innerHTML = ""; 
+            arContainer.innerHTML = "";
             arContainer.appendChild(arLink);
-            arLink.click(); // Simula un clic para abrir AR automáticamente
+            arLink.click();
         }
     </script>
 </body>
