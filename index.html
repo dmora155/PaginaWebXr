@@ -110,58 +110,30 @@ function onXRFrame(time, frame) {
   renderer.render(scene, camera);
 }
 
-window.addEventListener("touchstart", onTouchStart);
-window.addEventListener("touchmove", onTouchMove);
-window.addEventListener("touchend", onTouchEnd);
+window.addEventListener("pointerdown", onPointerDown);
+window.addEventListener("pointermove", onPointerMove);
+window.addEventListener("pointerup", onPointerUp);
 
-function onTouchStart(event) {
+function onPointerDown(event) {
   if (!isObjectPlaced) return;
-  touch.x = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
-  touch.y = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
+  touch.x = (event.clientX / window.innerWidth) * 2 - 1;
+  touch.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(touch, camera);
   const intersects = raycaster.intersectObject(objectPlaced, true);
   if (intersects.length > 0) {
     selectedObject = objectPlaced;
     isDragging = true;
-    if (event.touches.length === 2) {
-      initialTouchDistance = getDistance(event.touches);
-      initialScale = selectedObject.scale.x;
-      lastRotationAngle = getAngle(event.touches);
-    }
   }
 }
 
-function onTouchMove(event) {
+function onPointerMove(event) {
   if (!selectedObject || !isDragging) return;
-  if (event.touches.length === 1) {
-    selectedObject.position.x += event.touches[0].movementX * 0.001;
-    selectedObject.position.y -= event.touches[0].movementY * 0.001;
-  } else if (event.touches.length === 2) {
-    const newDistance = getDistance(event.touches);
-    const scaleFactor = newDistance / initialTouchDistance;
-    selectedObject.scale.set(initialScale * scaleFactor, initialScale * scaleFactor, initialScale * scaleFactor);
-    
-    const newAngle = getAngle(event.touches);
-    selectedObject.rotation.y += (newAngle - lastRotationAngle) * 0.01;
-    lastRotationAngle = newAngle;
-  }
+  selectedObject.position.x += event.movementX * 0.002;
+  selectedObject.position.y -= event.movementY * 0.002;
 }
 
-function onTouchEnd(event) {
-  if (event.touches.length === 0) {
-    isDragging = false;
-    selectedObject = null;
-  }
-}
-
-function getDistance(touches) {
-  const dx = touches[0].clientX - touches[1].clientX;
-  const dy = touches[0].clientY - touches[1].clientY;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
-function getAngle(touches) {
-  return Math.atan2(touches[0].clientY - touches[1].clientY, touches[0].clientX - touches[1].clientX);
+function onPointerUp() {
+  isDragging = false;
 }
 </script>
 
