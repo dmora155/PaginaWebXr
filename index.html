@@ -1,25 +1,34 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebXR AR Object Placement with A-Frame</title>
+  <title>WebXR AR Object Placement</title>
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-  <script src="https://jeromeetienne.github.io/AR.js/aframe/build/aframe-ar.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.7.0/aframe-ar.min.js"></script>
 </head>
-<body>
-  <button id="startAR" onclick="startAR()" style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 10px; font-size: 16px;">Start AR</button>
-  
-  <a-scene embedded arjs id="arScene" style="display: none;">
-    <!-- Cámara AR -->
-    <a-marker-camera preset='hiro' id="arCamera"></a-marker-camera>
-    
+<body style="margin: 0; overflow: hidden;">
+  <button id="startAR" onclick="startAR()" style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 10px; font-size: 16px;">
+    Activar AR
+  </button>
+
+  <a-scene id="arScene" embedded arjs vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;" style="display: none;">
+    <!-- Cámara -->
+    <a-camera id="arCamera" position="0 1.6 0">
+      <a-cursor></a-cursor>
+    </a-camera>
+
     <!-- Luz -->
     <a-light type="directional" position="1 1 1" intensity="1"></a-light>
 
-    <!-- Modelo 3D (Girasol) -->
-    <a-entity id="objectPlaced" gltf-model="https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf" position="0 0 0" scale="0.5 0.5 0.5">
-      <a-animation attribute="rotation" to="0 360 0" dur="5000" repeat="indefinite"></a-animation>
+    <!-- Modelo 3D -->
+    <a-entity id="objectPlaced" 
+              gltf-model="https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf"
+              position="0 0 -2" 
+              scale="0.5 0.5 0.5" 
+              rotation="0 180 0"
+              gesture-handler>
     </a-entity>
   </a-scene>
 
@@ -30,10 +39,47 @@
     function startAR() {
       startARButton.style.display = "none";
       arScene.style.display = "block";
-      setTimeout(() => {
-        arScene.setAttribute("arjs", "sourceType: webcam;");
-      }, 500);
     }
+
+    // Componente para manipular el objeto con gestos
+    AFRAME.registerComponent('gesture-handler', {
+      init: function () {
+        let el = this.el;
+        let scale = 1;
+        let rotationY = 0;
+        let lastTouchDistance = null;
+
+        this.el.sceneEl.addEventListener('touchstart', function (event) {
+          if (event.touches.length === 2) {
+            lastTouchDistance = getDistance(event.touches[0], event.touches[1]);
+          }
+        });
+
+        this.el.sceneEl.addEventListener('touchmove', function (event) {
+          if (event.touches.length === 1) {
+            // Rotación
+            let deltaX = event.touches[0].clientX - window.innerWidth / 2;
+            rotationY += deltaX * 0.1;
+            el.setAttribute('rotation', `0 ${rotationY} 0`);
+          } else if (event.touches.length === 2) {
+            // Escalar con dos dedos
+            let currentDistance = getDistance(event.touches[0], event.touches[1]);
+            if (lastTouchDistance) {
+              let scaleChange = currentDistance / lastTouchDistance;
+              scale *= scaleChange;
+              el.setAttribute('scale', `${scale} ${scale} ${scale}`);
+            }
+            lastTouchDistance = currentDistance;
+          }
+        });
+
+        function getDistance(touch1, touch2) {
+          let dx = touch1.clientX - touch2.clientX;
+          let dy = touch1.clientY - touch2.clientY;
+          return Math.sqrt(dx * dx + dy * dy);
+        }
+      }
+    });
   </script>
 </body>
 </html>
