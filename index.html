@@ -49,11 +49,12 @@ let hitTestSource = null;
 let referenceSpace;
 let session;
 let isObjectPlaced = false;
-let isDragging = false;
+let isInteracting = false;
 let initialTouchDistance = 0;
 let initialScale = 1;
 let initialRotation = 0;
 let lastRotationAngle = 0;
+let selectedObject = null;
 
 async function activateXR() {
   document.getElementById("controls").style.display = "flex";
@@ -93,6 +94,7 @@ async function activateXR() {
   session.addEventListener("select", () => {
     if (objectPlaced && objectPlaced.visible && !isObjectPlaced) {
       isObjectPlaced = true;
+      selectedObject = objectPlaced;
       document.getElementById("deleteButton").style.display = "block";
     }
   });
@@ -140,33 +142,34 @@ window.addEventListener("touchend", onTouchEnd);
 
 function onTouchStart(event) {
   if (!isObjectPlaced) return;
+  isInteracting = true;
   if (event.touches.length === 1) {
-    isDragging = true;
+    selectedObject = objectPlaced;
   } else if (event.touches.length === 2) {
     initialTouchDistance = getDistance(event.touches);
-    initialScale = objectPlaced.scale.x;
+    initialScale = selectedObject.scale.x;
     lastRotationAngle = getAngle(event.touches);
   }
 }
 
 function onTouchMove(event) {
-  if (!isObjectPlaced) return;
-  if (event.touches.length === 1 && isDragging) {
-    objectPlaced.position.x += event.touches[0].movementX * 0.001;
-    objectPlaced.position.y -= event.touches[0].movementY * 0.001;
+  if (!isObjectPlaced || !isInteracting || !selectedObject) return;
+  if (event.touches.length === 1) {
+    selectedObject.position.x += event.touches[0].movementX * 0.001;
+    selectedObject.position.y -= event.touches[0].movementY * 0.001;
   } else if (event.touches.length === 2) {
     const newDistance = getDistance(event.touches);
     const scaleFactor = newDistance / initialTouchDistance;
-    objectPlaced.scale.set(initialScale * scaleFactor, initialScale * scaleFactor, initialScale * scaleFactor);
+    selectedObject.scale.set(initialScale * scaleFactor, initialScale * scaleFactor, initialScale * scaleFactor);
     
     const newAngle = getAngle(event.touches);
-    objectPlaced.rotation.y += (newAngle - lastRotationAngle) * 0.01;
+    selectedObject.rotation.y += (newAngle - lastRotationAngle) * 0.01;
     lastRotationAngle = newAngle;
   }
 }
 
 function onTouchEnd() {
-  isDragging = false;
+  isInteracting = false;
 }
 
 function getDistance(touches) {
@@ -180,9 +183,9 @@ function getAngle(touches) {
 }
 
 function deleteObject() {
-  if (objectPlaced) {
-    scene.remove(objectPlaced);
-    objectPlaced = null;
+  if (selectedObject) {
+    scene.remove(selectedObject);
+    selectedObject = null;
     isObjectPlaced = false;
     document.getElementById("deleteButton").style.display = "none";
   }
