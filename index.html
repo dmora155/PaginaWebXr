@@ -38,15 +38,17 @@
         <button onclick="viewInAR('coin')">Moneda</button>
         <button onclick="viewInAR('mushroom')">Hongo</button>
         <button onclick="viewInAR('star')">Estrella</button>
+        <button onclick="viewInAR('lamp')">Lámpara</button> <!-- Nuevo botón para la lámpara -->
     </div>
 
     <div id="ar-container"></div>
 
     <script>
         const objects = {
-            coin: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
+            coin: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.glb",
             mushroom: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Mushroom.glb",
-            star: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Star.glb"
+            star: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Star.glb",
+            lamp: "https://tu-servidor.com/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb" // URL de la lámpara
         };
 
         function viewInAR(objectKey) {
