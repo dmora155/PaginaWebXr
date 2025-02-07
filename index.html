@@ -14,32 +14,9 @@
       overflow: hidden;
       touch-action: none;
     }
-    #controls {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      display: flex;
-      gap: 10px;
-    }
-    button {
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
-
-<div id="controls">
-  <button id="startButton" onclick="activateXR()">Start AR</button>
-  <button id="deleteButton" onclick="deleteObject()" style="display: none;">Delete Object</button>
-</div>
 
 <script>
 let scene, objectPlaced = null, camera, renderer;
@@ -49,15 +26,10 @@ let hitTestSource = null;
 let referenceSpace;
 let session;
 let isObjectPlaced = false;
-let isInteracting = false;
-let initialTouchDistance = 0;
-let initialScale = 1;
-let initialRotation = 0;
-let lastRotationAngle = 0;
 let selectedObject = null;
+let touchStartTime = 0;
 
 async function activateXR() {
-  document.getElementById("controls").style.display = "flex";
   const canvas = document.createElement("canvas");
   document.body.appendChild(canvas);
   const gl = canvas.getContext("webgl", {xrCompatible: true});
@@ -95,7 +67,6 @@ async function activateXR() {
     if (objectPlaced && objectPlaced.visible && !isObjectPlaced) {
       isObjectPlaced = true;
       selectedObject = objectPlaced;
-      document.getElementById("deleteButton").style.display = "block";
     }
   });
 
@@ -142,44 +113,35 @@ window.addEventListener("touchend", onTouchEnd);
 
 function onTouchStart(event) {
   if (!isObjectPlaced) return;
-  isInteracting = true;
-  if (event.touches.length === 1) {
+  touchStartTime = Date.now();
+  
+  touch.x = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
+  touch.y = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(touch, camera);
+  const intersects = raycaster.intersectObject(objectPlaced, true);
+  
+  if (intersects.length > 0) {
     selectedObject = objectPlaced;
-  } else if (event.touches.length === 2) {
-    initialTouchDistance = getDistance(event.touches);
-    initialScale = selectedObject.scale.x;
-    lastRotationAngle = getAngle(event.touches);
   }
 }
 
 function onTouchMove(event) {
-  if (!isObjectPlaced || !isInteracting || !selectedObject) return;
-  if (event.touches.length === 1) {
-    selectedObject.position.x += event.touches[0].movementX * 0.001;
-    selectedObject.position.y -= event.touches[0].movementY * 0.001;
-  } else if (event.touches.length === 2) {
-    const newDistance = getDistance(event.touches);
-    const scaleFactor = newDistance / initialTouchDistance;
-    selectedObject.scale.set(initialScale * scaleFactor, initialScale * scaleFactor, initialScale * scaleFactor);
-    
-    const newAngle = getAngle(event.touches);
-    selectedObject.rotation.y += (newAngle - lastRotationAngle) * 0.01;
-    lastRotationAngle = newAngle;
+  if (!selectedObject) return;
+  selectedObject.position.x += event.touches[0].movementX * 0.001;
+  selectedObject.position.y -= event.touches[0].movementY * 0.001;
+}
+
+function onTouchEnd(event) {
+  if (!selectedObject) return;
+  const touchDuration = Date.now() - touchStartTime;
+  
+  if (touchDuration > 500) {
+    console.log("Long press detected - object selected for editing");
   }
-}
-
-function onTouchEnd() {
-  isInteracting = false;
-}
-
-function getDistance(touches) {
-  const dx = touches[0].clientX - touches[1].clientX;
-  const dy = touches[0].clientY - touches[1].clientY;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
-function getAngle(touches) {
-  return Math.atan2(touches[0].clientY - touches[1].clientY, touches[0].clientX - touches[1].clientX);
+  if (touchDuration < 300 && event.touches.length === 0) {
+    console.log("Double tap detected - object deleted");
+    deleteObject();
+  }
 }
 
 function deleteObject() {
@@ -187,10 +149,11 @@ function deleteObject() {
     scene.remove(selectedObject);
     selectedObject = null;
     isObjectPlaced = false;
-    document.getElementById("deleteButton").style.display = "none";
   }
 }
 </script>
+
+<button onclick="activateXR()" style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 10px; font-size: 16px;">Start AR</button>
 
 </body>
 </html>
