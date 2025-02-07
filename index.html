@@ -12,8 +12,8 @@
   
   <a-scene embedded arjs="sourceType: webcam;" id="arScene" style="display: none;">
     <!-- Cámara AR -->
-    <a-camera position="0 1.6 0"></a-camera>
-
+    <a-marker-camera preset='hiro'></a-marker-camera>
+    
     <!-- Luz -->
     <a-light type="directional" position="1 1 1" intensity="1"></a-light>
 
@@ -32,16 +32,11 @@
     let isObjectPlaced = false;
 
     function startAR() {
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(() => {
-          arScene.style.display = "block";
-          document.querySelector("a-scene").setAttribute("arjs", "sourceType: webcam;");
-          startARButton.style.display = "none";
-        })
-        .catch((err) => {
-          console.error("Error activando la cámara: ", err);
-          alert("No se pudo acceder a la cámara. Verifica los permisos de tu navegador.");
-        });
+      startARButton.style.display = "none";
+      arScene.style.display = "block";
+      setTimeout(() => {
+        document.querySelector("a-scene").setAttribute("arjs", "sourceType: webcam;");
+      }, 1000);
     }
 
     function placeObject() {
