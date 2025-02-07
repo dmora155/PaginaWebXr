@@ -48,7 +48,7 @@ let referenceSpace;
 let isObjectPlaced = false;
 let lastTouchX = 0, lastTouchDistance = 0, scale = 1, rotationY = 0;
 
-// **1️⃣ Función para activar WebXR**
+// **1️⃣ Activar WebXR**
 async function activateXR() {
   document.getElementById("startButton").style.display = "none"; 
 
@@ -87,13 +87,13 @@ async function activateXR() {
   requestHitTestSource(session);
 }
 
-// **2️⃣ Función para obtener la posición de la superficie antes de colocar el objeto**
+// **2️⃣ Obtener la posición de la superficie**
 async function requestHitTestSource(session) {
   const viewerReferenceSpace = await session.requestReferenceSpace('viewer');
   hitTestSource = await session.requestHitTestSource({ space: viewerReferenceSpace });
 }
 
-// **3️⃣ Renderizar el objeto en la superficie detectada antes de colocarlo**
+// **3️⃣ Mostrar vista previa sobre la superficie detectada**
 function onXRFrame(time, frame) {
   session.requestAnimationFrame(onXRFrame);
   const gl = renderer.getContext();
@@ -121,10 +121,12 @@ function onXRFrame(time, frame) {
   renderer.render(scene, camera);
 }
 
-// **4️⃣ Función para colocar el objeto en la superficie**
+// **4️⃣ Colocar el objeto en la superficie**
 function placeObject() {
   if (!isObjectPlaced && objectPreview) {
-    objectPlaced = objectPreview;
+    objectPlaced = objectPreview.clone();
+    objectPlaced.visible = true;
+    scene.add(objectPlaced);
     isObjectPlaced = true;
   }
 }
