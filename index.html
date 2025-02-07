@@ -38,7 +38,6 @@
 
 <div id="controls">
   <button id="startButton" onclick="activateXR()">Activar AR</button>
-  <button id="placeButton" onclick="placeObject()" style="display: none;">Colocar Objeto</button>
 </div>
 
 <script>
@@ -78,26 +77,23 @@ async function activateXR() {
   loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf", function(gltf) {
     objectPreview = gltf.scene;
     objectPreview.scale.set(0.5, 0.5, 0.5);
+    objectPreview.visible = false;
     scene.add(objectPreview);
   });
 
-  session.addEventListener("select", () => {
-    if (!isObjectPlaced) {
-      document.getElementById("placeButton").style.display = "block";
-    }
-  });
+  session.addEventListener("select", placeObject);
 
   session.requestAnimationFrame(onXRFrame);
   requestHitTestSource(session);
 }
 
-// **2️⃣ Función para obtener la posición del objeto antes de colocarlo**
+// **2️⃣ Función para obtener la posición de la superficie antes de colocar el objeto**
 async function requestHitTestSource(session) {
   const viewerReferenceSpace = await session.requestReferenceSpace('viewer');
   hitTestSource = await session.requestHitTestSource({ space: viewerReferenceSpace });
 }
 
-// **3️⃣ Renderizar el objeto en la vista previa antes de colocarlo**
+// **3️⃣ Renderizar el objeto en la superficie detectada antes de colocarlo**
 function onXRFrame(time, frame) {
   session.requestAnimationFrame(onXRFrame);
   const gl = renderer.getContext();
@@ -117,20 +113,19 @@ function onXRFrame(time, frame) {
       const hitTestResults = frame.getHitTestResults(hitTestSource);
       if (hitTestResults.length > 0) {
         const hitPose = hitTestResults[0].getPose(referenceSpace);
-        objectPreview.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
         objectPreview.visible = true;
+        objectPreview.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
       }
     }
   }
   renderer.render(scene, camera);
 }
 
-// **4️⃣ Función para colocar el objeto en la escena**
+// **4️⃣ Función para colocar el objeto en la superficie**
 function placeObject() {
   if (!isObjectPlaced && objectPreview) {
     objectPlaced = objectPreview;
     isObjectPlaced = true;
-    document.getElementById("placeButton").style.display = "none";
   }
 }
 
