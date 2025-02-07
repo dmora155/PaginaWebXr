@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Experiencia AR en Android</title>
+    <title>Experiencia AR con Conversión Universal a Centímetros</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://threejs.org/examples/js/exporters/GLTFExporter.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -33,7 +34,7 @@
     </style>
 </head>
 <body>
-    <h1>Experiencia AR con Conversión de Unidades</h1>
+    <h1>Experiencia AR con Conversión Universal a Centímetros</h1>
     <p>Elige un objeto y míralo en AR con la escala corregida.</p>
 
     <div>
@@ -54,9 +55,56 @@
         function openAR(objectKey) {
             const modelUrl = objects[objectKey];
 
-            openInSceneViewer(modelUrl);
+            detectAndConvertToCm(modelUrl, objectKey);
+        }
 
-            detectScale(modelUrl, objectKey);
+        function detectAndConvertToCm(modelUrl, objectKey) {
+            const loader = new THREE.GLTFLoader();
+
+            loader.load(modelUrl, function (gltf) {
+                const model = gltf.scene;
+                const boundingBox = new THREE.Box3().setFromObject(model);
+                const size = boundingBox.getSize(new THREE.Vector3());
+
+                // Detectar la unidad original (suponiendo que el mayor lado define la unidad)
+                const maxDimension = Math.max(size.x, size.y, size.z);
+                let scaleFactor = 1;
+
+                if (maxDimension > 100) {
+                    scaleFactor = 0.1; // Posible unidad: milímetros
+                } else if (maxDimension > 10) {
+                    scaleFactor = 1; // Posible unidad: centímetros
+                } else if (maxDimension > 1) {
+                    scaleFactor = 10; // Posible unidad: decímetros
+                } else {
+                    scaleFactor = 100; // Posible unidad: metros
+                }
+
+                // Ajustar la escala para convertir a centímetros
+                model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                console.log(`Modelo ${objectKey} escalado con factor ${scaleFactor} para convertir a centímetros.`);
+                
+                exportAndOpenAR(model, modelUrl.endsWith(".glb") ? "glb" : "gltf");
+            }, undefined, function (error) {
+                console.error("Error al cargar el modelo:", error);
+                openInSceneViewer(modelUrl);
+            });
+        }
+
+        function exportAndOpenAR(model, format) {
+            const exporter = new THREE.GLTFExporter();
+            const options = format === "glb" ? { binary: true } : { binary: false };
+
+            exporter.parse(model, function (gltf) {
+                let blob;
+                if (format === "glb") {
+                    blob = new Blob([gltf], { type: "model/gltf-binary" });
+                } else {
+                    blob = new Blob([JSON.stringify(gltf)], { type: "application/json" });
+                }
+                const url = URL.createObjectURL(blob);
+                openInSceneViewer(url);
+            }, options);
         }
 
         function openInSceneViewer(modelUrl) {
@@ -64,25 +112,6 @@
             arLink.setAttribute("href", `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`);
             arLink.setAttribute("rel", "ar");
             arLink.click();
-        }
-
-        function detectScale(modelUrl, objectKey) {
-            const loader = new THREE.GLTFLoader();
-
-            loader.load(modelUrl, function (gltf) {
-                const model = gltf.scene;
-                const scale = model.scale.x;
-
-                console.log(`Escala detectada para ${objectKey}: ${scale}`);
-
-                if (scale <= 1) {
-                    alert(`${objectKey} parece estar en metros. Si es necesario, puedes convertirlo a centímetros en Blender.`);
-                } else {
-                    alert(`${objectKey} ya está en centímetros.`);
-                }
-            }, undefined, function (error) {
-                console.error("Error al cargar el modelo:", error);
-            });
         }
     </script>
 </body>
