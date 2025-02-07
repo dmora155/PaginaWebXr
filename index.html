@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Experiencia AR en Android</title>
+    <title>WebXR AR - Selección de Objetos</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@webxr-input-profiles/motion-controllers@1.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -26,40 +29,84 @@
             background-color: #ffbb00;
         }
         #ar-container {
-            margin-top: 20px;
+            width: 100%;
+            height: 80vh;
         }
     </style>
 </head>
 <body>
-    <h1>Experiencia AR en Android</h1>
-    <p>Elige un objeto y míralo en AR.</p>
+    <h1>Experiencia AR con WebXR</h1>
+    <p>Escanea una superficie y elige qué objeto colocar en AR.</p>
 
     <div>
-        <button onclick="viewInAR('coin')">Moneda</button>
-        <button onclick="viewInAR('mushroom')">Hongo</button>
-        <button onclick="viewInAR('star')">Estrella</button>
+        <button onclick="selectObject('coin')">Moneda</button>
+        <button onclick="selectObject('mushroom')">Hongo</button>
+        <button onclick="selectObject('star')">Estrella</button>
     </div>
 
+    <button id="start-ar">Iniciar AR</button>
     <div id="ar-container"></div>
 
     <script>
+        let selectedObject = 'coin';
         const objects = {
-            coin: "https://github.com/dmora155/PruebaDePagina/blob/main/super_mario_bros_coin.glb",
+            coin: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.glb",
             mushroom: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Mushroom.glb",
             star: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Star.glb"
         };
 
-        function viewInAR(objectKey) {
-            const modelUrl = objects[objectKey];
-            const arLink = document.createElement("a");
-            arLink.setAttribute("href", `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`);
-            arLink.setAttribute("rel", "ar");
-            arLink.innerHTML = `<img src="${objectKey}.png" width="100" alt="Ver en AR">`;
-            
-            const arContainer = document.getElementById("ar-container");
-            arContainer.innerHTML = ""; 
-            arContainer.appendChild(arLink);
-            arLink.click(); // Simula un clic para abrir AR automáticamente
+        function selectObject(objectKey) {
+            selectedObject = objectKey;
+            document.getElementById("start-ar").innerText = `Iniciar AR con ${objectKey}`;
+        }
+
+        document.getElementById("start-ar").addEventListener("click", async function() {
+            if (navigator.xr) {
+                startWebXR();
+            } else {
+                alert("Tu dispositivo no soporta WebXR.");
+            }
+        });
+
+        async function startWebXR() {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 10);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+            scene.add(light);
+
+            const loader = new THREE.GLTFLoader();
+            let objectModel;
+
+            loader.load(objects[selectedObject], (gltf) => {
+                objectModel = gltf.scene;
+                objectModel.scale.set(0.3, 0.3, 0.3);
+            });
+
+            const session = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test"] });
+            renderer.xr.setSession(session);
+
+            const referenceSpace = await session.requestReferenceSpace("local");
+            const viewerSpace = await session.requestReferenceSpace("viewer");
+            const hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+
+            function render(timestamp, frame) {
+                if (frame) {
+                    const hitTestResults = frame.getHitTestResults(hitTestSource);
+                    if (hitTestResults.length > 0 && objectModel) {
+                        const hitPose = hitTestResults[0].getPose(referenceSpace);
+                        objectModel.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
+                        scene.add(objectModel);
+                    }
+                }
+                renderer.render(scene, camera);
+            }
+
+            renderer.setAnimationLoop(render);
         }
     </script>
 </body>
