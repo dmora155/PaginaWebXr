@@ -3,98 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebXR AR Object Placement with Babylon.js</title>
-  <script src="https://cdn.babylonjs.com/babylon.js"></script>
-  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <title>WebXR AR Object Placement with Three.js</title>
+  <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
+  <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
-  <canvas id="renderCanvas" touch-action="none"></canvas>
+  <button id="startButton" onclick="activateXR()" style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 10px; font-size: 16px;">Start AR</button>
   <script>
-    let canvas = document.getElementById("renderCanvas");
-    let engine = new BABYLON.Engine(canvas, true);
-    let scene = new BABYLON.Scene(engine);
-    scene.createDefaultCameraOrLight(true, true, true);
-
-    let xrHelper;
+    let scene, camera, renderer;
+    let controller;
     let objectPlaced = null;
     let isObjectPlaced = false;
+    let hitTestSource = null;
+    let hitTestSourceRequested = false;
+    let referenceSpace;
     let isDragging = false;
-    let initialDistance = 0;
+    let initialTouchDistance = 0;
     let initialScale = 1;
     let lastRotationAngle = 0;
-    
-    async function initXR() {
-      xrHelper = await scene.createDefaultXRExperienceAsync({
-        uiOptions: {
-          sessionMode: "immersive-ar"
-        }
+
+    async function activateXR() {
+      document.getElementById("startButton").style.display = "none";
+
+      const canvas = document.createElement("canvas");
+      document.body.appendChild(canvas);
+      renderer = new THREE.WebGLRenderer({ alpha: true, canvas: canvas });
+      renderer.xr.enabled = true;
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera();
+      scene.add(camera);
+
+      const light = new THREE.DirectionalLight(0xffffff, 1);
+      light.position.set(10, 10, 10);
+      scene.add(light);
+
+      const session = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ['hit-test'] });
+      renderer.xr.setSession(session);
+
+      referenceSpace = await session.requestReferenceSpace('local');
+      const viewerSpace = await session.requestReferenceSpace('viewer');
+      hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+
+      controller = renderer.xr.getController(0);
+      controller.addEventListener("select", placeObject);
+      scene.add(controller);
+
+      const loader = new THREE.GLTFLoader();
+      loader.load("https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf", function(gltf) {
+        objectPlaced = gltf.scene;
+        objectPlaced.visible = false;
+        scene.add(objectPlaced);
       });
-      const featuresManager = xrHelper.baseExperience.featuresManager;
-      const hitTest = featuresManager.enableFeature(BABYLON.WebXRHitTest, "latest", {
-        disablePermanentHitTest: false
-      });
-      
-      BABYLON.SceneLoader.ImportMesh("", "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/", "sunflower.gltf", scene, function(meshes) {
-        objectPlaced = meshes[0];
-        objectPlaced.isVisible = false;
-      });
-      
-      hitTest.onHitTestResultObservable.add((results) => {
-        if (results.length && objectPlaced && !isObjectPlaced) {
-          objectPlaced.isVisible = true;
-          objectPlaced.position.copyFrom(results[0].transformationMatrix.getTranslation());
-        }
-      });
+
+      renderer.setAnimationLoop(render);
     }
 
-    function placeObject(event) {
-      if (isObjectPlaced || !objectPlaced) return;
-      objectPlaced.isVisible = true;
+    function placeObject() {
+      if (!objectPlaced || isObjectPlaced) return;
+      objectPlaced.visible = true;
       isObjectPlaced = true;
     }
 
-    function handlePointer(event) {
-      if (!isObjectPlaced || !objectPlaced) return;
-      if (event.type === "pointerdown") {
-        isDragging = true;
-      } else if (event.type === "pointermove" && isDragging) {
-        objectPlaced.position.x += event.movementX * 0.001;
-        objectPlaced.position.y -= event.movementY * 0.001;
-      } else if (event.type === "pointerup") {
-        isDragging = false;
-      } else if (event.touches && event.touches.length === 2) {
-        let newDistance = getDistance(event.touches);
-        objectPlaced.scaling.scaleInPlace(newDistance / initialDistance);
-        let newAngle = getAngle(event.touches);
-        objectPlaced.rotation.y += (newAngle - lastRotationAngle) * 0.01;
-        lastRotationAngle = newAngle;
+    function render(timestamp, frame) {
+      if (frame) {
+        const session = renderer.xr.getSession();
+        const pose = frame.getViewerPose(referenceSpace);
+        if (pose) {
+          const view = pose.views[0];
+          const viewport = session.renderState.baseLayer.getViewport(view);
+          renderer.setSize(viewport.width, viewport.height);
+          camera.matrix.fromArray(view.transform.matrix);
+          camera.projectionMatrix.fromArray(view.projectionMatrix);
+          camera.updateMatrixWorld(true);
+
+          if (hitTestSource && !isObjectPlaced) {
+            const hitTestResults = frame.getHitTestResults(hitTestSource);
+            if (hitTestResults.length > 0) {
+              const hitPose = hitTestResults[0].getPose(referenceSpace);
+              objectPlaced.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
+            }
+          }
+        }
       }
+      renderer.render(scene, camera);
     }
-    
-    function getDistance(touches) {
-      let dx = touches[0].clientX - touches[1].clientX;
-      let dy = touches[0].clientY - touches[1].clientY;
-      return Math.sqrt(dx * dx + dy * dy);
-    }
-    
-    function getAngle(touches) {
-      return Math.atan2(touches[0].clientY - touches[1].clientY, touches[0].clientX - touches[1].clientX);
-    }
-    
-    engine.runRenderLoop(() => {
-      scene.render();
-    });
-    
-    window.addEventListener("resize", () => {
-      engine.resize();
-    });
-    
-    canvas.addEventListener("pointerdown", handlePointer);
-    canvas.addEventListener("pointermove", handlePointer);
-    canvas.addEventListener("pointerup", handlePointer);
-    canvas.addEventListener("touchstart", placeObject);
-    
-    initXR();
   </script>
 </body>
 </html>
