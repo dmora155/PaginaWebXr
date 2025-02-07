@@ -6,39 +6,48 @@
   <title>WebXR AR Object Placement</title>
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.7.0/aframe-ar.min.js"></script>
 </head>
 <body style="margin: 0; overflow: hidden;">
+
   <button id="startAR" onclick="startAR()" style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 10px; font-size: 16px;">
     Activar AR
   </button>
 
-  <a-scene id="arScene" embedded arjs vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;" style="display: none;">
-    <!-- Cámara -->
-    <a-camera id="arCamera" position="0 1.6 0">
-      <a-cursor></a-cursor>
-    </a-camera>
-
-    <!-- Luz -->
-    <a-light type="directional" position="1 1 1" intensity="1"></a-light>
-
-    <!-- Modelo 3D -->
-    <a-entity id="objectPlaced" 
-              gltf-model="https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf"
-              position="0 0 -2" 
-              scale="0.5 0.5 0.5" 
-              rotation="0 180 0"
-              gesture-handler>
-    </a-entity>
-  </a-scene>
-
   <script>
-    let arScene = document.getElementById("arScene");
-    let startARButton = document.getElementById("startAR");
-
     function startAR() {
-      startARButton.style.display = "none";
-      arScene.style.display = "block";
+      document.getElementById("startAR").style.display = "none"; // Oculta el botón
+
+      // Crear dinámicamente la escena AR
+      let scene = document.createElement("a-scene");
+      scene.setAttribute("embedded", "");
+      scene.setAttribute("xr-mode-ui", "enabled: false");
+      scene.setAttribute("renderer", "logarithmicDepthBuffer: true;");
+
+      // Crear la cámara
+      let camera = document.createElement("a-camera");
+      camera.setAttribute("position", "0 1.6 0");
+      camera.innerHTML = `<a-cursor></a-cursor>`;
+      scene.appendChild(camera);
+
+      // Luz direccional
+      let light = document.createElement("a-light");
+      light.setAttribute("type", "directional");
+      light.setAttribute("position", "1 1 1");
+      light.setAttribute("intensity", "1");
+      scene.appendChild(light);
+
+      // Modelo 3D interactivo
+      let object = document.createElement("a-entity");
+      object.setAttribute("id", "objectPlaced");
+      object.setAttribute("gltf-model", "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf");
+      object.setAttribute("position", "0 0 -2");
+      object.setAttribute("scale", "0.5 0.5 0.5");
+      object.setAttribute("rotation", "0 180 0");
+      object.setAttribute("gesture-handler", "");
+      scene.appendChild(object);
+
+      // Agregar la escena al body
+      document.body.appendChild(scene);
     }
 
     // Componente para manipular el objeto con gestos
