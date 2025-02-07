@@ -12,7 +12,7 @@
   
   <a-scene embedded arjs id="arScene" style="display: none;">
     <!-- Cámara AR -->
-    <a-marker-camera preset='hiro'></a-marker-camera>
+    <a-marker-camera preset='hiro' id="arCamera"></a-marker-camera>
     
     <!-- Luz -->
     <a-light type="directional" position="1 1 1" intensity="1"></a-light>
@@ -30,6 +30,9 @@
     function startAR() {
       startARButton.style.display = "none";
       arScene.style.display = "block";
+      setTimeout(() => {
+        arScene.setAttribute("arjs", "sourceType: webcam;");
+      }, 500);
     }
   </script>
 </body>
