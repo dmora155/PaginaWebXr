@@ -69,7 +69,14 @@ async function activateXR() {
   camera.matrixAutoUpdate = false;
   scene.add(camera);
 
-  session = await navigator.xr.requestSession("immersive-ar", {requiredFeatures: ['hit-test']});
+  try {
+    session = await navigator.xr.requestSession("immersive-ar", {requiredFeatures: ['hit-test']});
+  } catch (error) {
+    alert("WebXR no es compatible en este dispositivo o navegador.");
+    console.error(error);
+    return;
+  }
+
   session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
   referenceSpace = await session.requestReferenceSpace('local');
 
@@ -95,6 +102,7 @@ async function requestHitTestSource(session) {
 
 // **3️⃣ Mostrar vista previa sobre la superficie detectada**
 function onXRFrame(time, frame) {
+  if (!session) return;
   session.requestAnimationFrame(onXRFrame);
   const gl = renderer.getContext();
   gl.bindFramebuffer(gl.FRAMEBUFFER, session.renderState.baseLayer.framebuffer);
@@ -161,4 +169,25 @@ function onTouchMove(event) {
     objectPlaced.rotation.y = THREE.MathUtils.degToRad(rotationY);
   } else if (event.touches.length === 2) {
     // **Escalar**
-    let current
+    let currentDistance = getDistance(event.touches[0], event.touches[1]);
+    let scaleChange = currentDistance / lastTouchDistance;
+    scale *= scaleChange;
+    objectPlaced.scale.set(scale, scale, scale);
+    lastTouchDistance = currentDistance;
+  }
+}
+
+function onTouchEnd() {
+  lastTouchX = 0;
+  lastTouchDistance = 0;
+}
+
+function getDistance(touch1, touch2) {
+  let dx = touch1.clientX - touch2.clientX;
+  let dy = touch1.clientY - touch2.clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+</script>
+
+</body>
+</html>
