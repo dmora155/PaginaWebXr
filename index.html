@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversión de GLB a USDZ con Escala en Milímetros</title>
+    <title>Conversión de GLB a Milímetros</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://threejs.org/examples/js/exporters/GLTFExporter.js"></script>
@@ -28,31 +28,33 @@
         button:hover {
             background-color: #ffbb00;
         }
-        #usdz-download {
+        #glb-download {
             display: none;
             margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>Conversión de GLB a USDZ con Escala en Milímetros</h1>
-    <p>Descarga el archivo USDZ corregido.</p>
+    <h1>Conversión de GLB a Milímetros</h1>
+    <p>Descarga el archivo corregido.</p>
 
-    <button id="convert">Convertir y Descargar USDZ</button>
-    <a id="usdz-download" download="converted_model.usdz">Descargar USDZ</a>
+    <button id="convert">Convertir a Milímetros</button>
+    <a id="glb-download" download="converted_model.glb">Descargar GLB Corregido</a>
 
     <script>
-        const modelUrl = "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb"; // Archivo GLB en GitHub
+        const modelUrl = "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb"; // Archivo GLB en GitHub
 
         document.getElementById("convert").addEventListener("click", function () {
-            convertGLBToUSDZ();
+            alert("Iniciando descarga del modelo...");
+            convertGLBToMM();
         });
 
-        function convertGLBToUSDZ() {
-            alert("Descargando modelo...");
-
+        function convertGLBToMM() {
             const loader = new THREE.GLTFLoader();
+
             loader.load(modelUrl, function (gltf) {
+                alert("Modelo cargado correctamente.");
+
                 const model = gltf.scene;
                 const boundingBox = new THREE.Box3().setFromObject(model);
                 const size = boundingBox.getSize(new THREE.Vector3());
@@ -84,31 +86,19 @@
         function exportGLB(model) {
             alert("Exportando modelo corregido...");
             const exporter = new THREE.GLTFExporter();
-            exporter.parse(model, function (gltf) {
-                const blob = new Blob([gltf], { type: "model/gltf-binary" });
-                const convertedGLBUrl = URL.createObjectURL(blob);
 
-                convertToUSDZ(convertedGLBUrl);
+            exporter.parse(model, function (glb) {
+                alert("Modelo exportado correctamente, generando archivo...");
+                
+                const blob = new Blob([glb], { type: "model/gltf-binary" });
+                const glbUrl = URL.createObjectURL(blob);
+
+                // Mostrar botón para descargar el GLB corregido
+                const glbDownloadLink = document.getElementById("glb-download");
+                glbDownloadLink.href = glbUrl;
+                glbDownloadLink.style.display = "block";
+                alert("¡Listo! Ahora puedes descargar el archivo GLB corregido.");
             }, { binary: true });
-        }
-
-        function convertToUSDZ(glbUrl) {
-            alert("Convirtiendo GLB a USDZ...");
-
-            fetch(`https://usdztoglbconverter.com/api?url=${encodeURIComponent(glbUrl)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.usdzUrl) {
-                        alert("Conversión completada. Descarga el archivo USDZ.");
-                        document.getElementById("usdz-download").href = data.usdzUrl;
-                        document.getElementById("usdz-download").style.display = "block";
-                    } else {
-                        alert("Error al convertir a USDZ.");
-                    }
-                })
-                .catch(error => {
-                    alert("Error en la conversión a USDZ.");
-                });
         }
     </script>
 </body>
