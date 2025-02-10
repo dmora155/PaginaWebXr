@@ -15,15 +15,17 @@
             padding: 20px;
             background-color: #f8f8f8;
         }
-        button {
-            padding: 10px 15px;
+        select, button {
+            padding: 10px;
             font-size: 16px;
-            background-color: #ffcc00;
-            color: black;
-            border: none;
+            margin: 10px;
             border-radius: 5px;
             cursor: pointer;
-            margin: 10px;
+        }
+        button {
+            background-color: #ffcc00;
+            border: none;
+            color: black;
         }
         button:hover {
             background-color: #ffbb00;
@@ -35,7 +37,13 @@
 </head>
 <body>
     <h1>Experiencia AR en iOS y Android</h1>
-    <p>Presiona el botón para iniciar AR con el formato adecuado para tu dispositivo.</p>
+    <p>Selecciona un modelo y visualízalo en AR.</p>
+
+    <select id="model-selector">
+        <option value="coin">Moneda</option>
+        <option value="mushroom">Hongo</option>
+        <option value="star">Estrella</option>
+    </select>
 
     <button id="start-ar">Iniciar AR</button>
     <div id="ar-container"></div>
@@ -54,16 +62,30 @@
 
         const os = getOS();
 
-        // Usamos solo un archivo .glb de origen y el .usdz ya alojado
-        const modelGLB = "https://dmora155.github.io/PruebaDePagina/modelo_original.glb";
-        const modelUSDZ = "https://dmora155.github.io/PruebaDePagina/modelo_original.usdz"; // Asegúrate de subir el .usdz
+        const models = {
+            coin: {
+                name: "Moneda de Super Mario",
+                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
+                usdz: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.usdz"
+            },
+            mushroom: {
+                name: "Hongo de Super Mario",
+                glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
+                usdz: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.usdz"
+            },
+            star: {
+                name: "Estrella de Super Mario",
+                glb: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf",
+                usdz: "https://dmora155.github.io/PruebaDePagina/sunflower.usdz"
+            }
+        };
 
-        document.getElementById("start-ar").innerText = os === "iOS" ? "Iniciar AR (USDZ)" : "Iniciar AR (GLB)";
         document.getElementById("start-ar").addEventListener("click", function () {
+            const selectedModel = document.getElementById("model-selector").value;
             if (os === "Android") {
-                convertToMMAndOpen(modelGLB);
+                convertToMMAndOpen(models[selectedModel].glb);
             } else if (os === "iOS") {
-                openInQuickLook(modelUSDZ);
+                openInQuickLook(models[selectedModel].usdz);
             } else {
                 alert("Tu dispositivo no es compatible con AR.");
             }
