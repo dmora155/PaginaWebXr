@@ -67,20 +67,17 @@
             coin: {
                 name: "Moneda de Super Mario",
                 glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz",
-                img: "coin.png"
+                usdz: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.usdz"
             },
             mushroom: {
                 name: "Hongo de Super Mario",
                 glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/ORIGAMI-PIP_table-lamp_V1_Shade-small.usdz",
-                img: "mushroom.png"
+                usdz: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.usdz"
             },
             star: {
                 name: "Estrella de Super Mario",
                 glb: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf",
-                usdz: "https://dmora155.github.io/PruebaDePagina/sunflower.usdz",
-                img: "star.png"
+                usdz: "https://dmora155.github.io/PruebaDePagina/sunflower.usdz"
             }
         };
 
@@ -154,7 +151,20 @@
         }
 
         function openInQuickLook(modelUrl) {
-            window.location.href = `${modelUrl}#allowsContentScaling=0&callToAction=Ver en AR`;
+            if (!modelUrl) {
+                alert("Este objeto no tiene una versión compatible con iOS.");
+                return;
+            }
+
+            // Abrir Quick Look directamente en AR
+            const quickLookUrl = `${modelUrl}#allowsContentScaling=0&callToAction=Ver en AR`;
+
+            const a = document.createElement("a");
+            a.setAttribute("href", quickLookUrl);
+            a.setAttribute("rel", "ar");
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
     </script>
 </body>
