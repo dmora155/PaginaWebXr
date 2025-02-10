@@ -28,10 +28,6 @@
         button:hover {
             background-color: #ffbb00;
         }
-        #glb-download {
-            display: none;
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
@@ -39,7 +35,6 @@
     <p>Descarga el archivo corregido.</p>
 
     <button id="convert">Convertir a Milímetros</button>
-    <a id="glb-download" download="converted_model.glb">Descargar GLB Corregido</a>
 
     <script>
         const modelUrl = "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb"; // Archivo GLB en GitHub
@@ -89,15 +84,18 @@
 
             exporter.parse(model, function (glb) {
                 alert("Modelo exportado correctamente, generando archivo...");
-                
-                const blob = new Blob([glb], { type: "model/gltf-binary" });
-                const glbUrl = URL.createObjectURL(blob);
 
-                // Mostrar botón para descargar el GLB corregido
-                const glbDownloadLink = document.getElementById("glb-download");
-                glbDownloadLink.href = glbUrl;
-                glbDownloadLink.style.display = "block";
-                alert("¡Listo! Ahora puedes descargar el archivo GLB corregido.");
+                const blob = new Blob([glb], { type: "model/gltf-binary" });
+                const url = URL.createObjectURL(blob);
+
+                // Crear un enlace de descarga
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "converted_model.glb";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                alert("Archivo descargado con éxito.");
             }, { binary: true });
         }
     </script>
