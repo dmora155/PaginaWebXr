@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversión de GLB a Milímetros y USDZ</title>
+    <title>Conversión de GLB a Milímetros</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script> 
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/exporters/GLTFExporter.js"></script>
@@ -31,8 +31,8 @@
     </style>
 </head>
 <body>
-    <h1>Conversión de GLB a Milímetros y USDZ</h1>
-    <p>Descarga el archivo corregido en GLB o USDZ.</p>
+    <h1>Conversión de GLB a Milímetros</h1>
+    <p>Descarga el archivo corregido en GLB con la escala adecuada.</p>
 
     <button id="convert">Convertir a Milímetros</button>
 
@@ -43,22 +43,8 @@
 
         document.getElementById("convert").addEventListener("click", function () {
             alert(`Intentando descargar: ${modelUrl}`);
-            testModelLoad();
+            convertGLBToMM();
         });
-
-        function testModelLoad() {
-            fetch(modelUrl, { mode: "cors" })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Error HTTP: ${response.status}`);
-                    }
-                    alert("El archivo es accesible. Intentando cargarlo en Three.js...");
-                    convertGLBToMM();
-                })
-                .catch(error => {
-                    alert(`No se pudo acceder al archivo. Posible problema de CORS o URL incorrecta.\nError: ${error}`);
-                });
-        }
 
         function convertGLBToMM() {
             loader.load(modelUrl, function (gltf) {
@@ -70,23 +56,21 @@
 
                 alert(`Dimensiones originales: X=${size.x}, Y=${size.y}, Z=${size.z}`);
 
-                const maxDimension = Math.max(size.x, size.y, size.z);
+                // Determinar la unidad original y convertir a mm
                 let scaleFactor = 1;
 
-                if (maxDimension >= 1000) {
-                    scaleFactor = 0.001; // Modelo en km -> convertir a mm
-                } else if (maxDimension >= 100) {
-                    scaleFactor = 0.01; // Modelo en metros -> convertir a mm
-                } else if (maxDimension >= 10) {
-                    scaleFactor = 0.1; // Modelo en decímetros -> convertir a mm
-                } else if (maxDimension >= 1) {
-                    scaleFactor = 1; // Modelo ya en mm
+                if (size.x > 10 || size.y > 10 || size.z > 10) {
+                    alert("El modelo parece estar en metros. Ajustando a milímetros.");
+                    scaleFactor = 1000;
+                } else if (size.x > 1 || size.y > 1 || size.z > 1) {
+                    alert("El modelo parece estar en centímetros. Ajustando a milímetros.");
+                    scaleFactor = 10;
                 } else {
-                    scaleFactor = 10; // Modelo en cm -> convertir a mm
+                    alert("El modelo ya está en milímetros.");
                 }
 
                 model.scale.set(scaleFactor, scaleFactor, scaleFactor);
-                alert(`Modelo escalado con factor ${scaleFactor} a milímetros.`);
+                alert(`Modelo escalado correctamente con factor ${scaleFactor} a milímetros.`);
 
                 exportGLB(model);
             }, function (xhr) {
@@ -119,42 +103,7 @@
                 document.body.removeChild(a);
 
                 alert("Archivo GLB descargado con éxito.");
-
-                // Intentar convertir a USDZ
-                convertToUSDZ(blob);
             }, { binary: true });
-        }
-
-        function convertToUSDZ(glbBlob) {
-            alert("Convirtiendo GLB a USDZ...");
-
-            // Crear un formulario para enviar el archivo
-            const formData = new FormData();
-            formData.append("file", glbBlob, "converted_model.glb");
-
-            fetch("https://api.meshconvert.com/convert", {
-                method: "POST",
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.usdz_url) {
-                    alert("Conversión a USDZ completada. Descarga disponible.");
-
-                    // Crear enlace de descarga para USDZ
-                    const a = document.createElement("a");
-                    a.href = data.usdz_url;
-                    a.download = "converted_lamp_model.usdz";
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                } else {
-                    alert("Error al convertir a USDZ.");
-                }
-            })
-            .catch(error => {
-                alert(`Error en la conversión a USDZ: ${error}`);
-            });
         }
     </script>
 </body>
