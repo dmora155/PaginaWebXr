@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversión de GLB a Milímetros</title>
+    <title>Conversión de GLB a Milímetros y USDZ</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/exporters/GLTFExporter.js"></script>
     <style>
         body {
@@ -31,38 +31,22 @@
     </style>
 </head>
 <body>
-    <h1>Conversión de GLB a Milímetros</h1>
+    <h1>Conversión de GLB a Milímetros y USDZ</h1>
     <p>Descarga el archivo corregido.</p>
 
-    <button id="convert">Convertir a Milímetros</button>
+    <button id="convert">Convertir a Milímetros y USDZ</button>
 
     <script>
-        // Importamos correctamente GLTFLoader y GLTFExporter
-        const loader = new THREE.GLTFLoader();
-        const exporter = new THREE.GLTFExporter();
-
         const modelUrl = "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb";
 
         document.getElementById("convert").addEventListener("click", function () {
             alert(`Intentando descargar: ${modelUrl}`);
-            testModelLoad();
+            convertGLBToMM();
         });
 
-        function testModelLoad() {
-            fetch(modelUrl, { mode: "cors" })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Error HTTP: ${response.status}`);
-                    }
-                    alert("El archivo es accesible. Intentando cargarlo en Three.js...");
-                    convertGLBToMM();
-                })
-                .catch(error => {
-                    alert(`No se pudo acceder al archivo. Posible problema de CORS o URL incorrecta.\nError: ${error}`);
-                });
-        }
-
         function convertGLBToMM() {
+            const loader = new THREE.GLTFLoader();
+
             loader.load(modelUrl, function (gltf) {
                 alert("Modelo cargado correctamente.");
 
@@ -76,30 +60,30 @@
                 let scaleFactor = 1;
 
                 if (maxDimension >= 1000) {
-                    scaleFactor = 0.001; // Modelo en km -> convertir a mm
+                    scaleFactor = 0.001;
                 } else if (maxDimension >= 100) {
-                    scaleFactor = 0.01; // Modelo en metros -> convertir a mm
+                    scaleFactor = 0.01;
                 } else if (maxDimension >= 10) {
-                    scaleFactor = 0.1; // Modelo en decímetros -> convertir a mm
+                    scaleFactor = 0.1;
                 } else if (maxDimension >= 1) {
-                    scaleFactor = 1; // Modelo ya en mm
+                    scaleFactor = 1;
                 } else {
-                    scaleFactor = 10; // Modelo en cm -> convertir a mm
+                    scaleFactor = 10;
                 }
 
                 model.scale.set(scaleFactor, scaleFactor, scaleFactor);
                 alert(`Modelo escalado con factor ${scaleFactor} a milímetros.`);
 
                 exportGLB(model);
-            }, function (xhr) {
-                alert(`Progreso de carga: ${xhr.loaded} bytes descargados.`);
-            }, function (error) {
-                alert(`Error al cargar el modelo en Three.js: ${error}`);
+            }, undefined, function (error) {
+                alert("Error al cargar el modelo.");
             });
         }
 
         function exportGLB(model) {
             alert("Exportando modelo corregido...");
+
+            const exporter = new THREE.GLTFExporter();
 
             exporter.parse(model, function (glb) {
                 if (!glb) {
@@ -112,20 +96,56 @@
                 const blob = new Blob([glb], { type: "model/gltf-binary" });
                 const url = URL.createObjectURL(blob);
 
-                // Verificar si el archivo se generó correctamente
-                alert(`Archivo generado en memoria: ${url}`);
+                alert(`Archivo GLB generado: ${url}`);
 
-                // Crear un enlace de descarga
+                // Descargar GLB
                 const a = document.createElement("a");
                 a.href = url;
                 a.download = "converted_lamp_model.glb";
-
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
+                alert("GLB descargado con éxito.");
 
-                alert("Archivo descargado con éxito.");
+                // Enviar a conversión a USDZ
+                convertToUSDZ(blob);
             }, { binary: true });
+        }
+
+        function convertToUSDZ(glbBlob) {
+            alert("Convirtiendo GLB a USDZ...");
+
+            const formData = new FormData();
+            formData.append("file", glbBlob, "converted_lamp_model.glb");
+
+            fetch("https://usdztoglb-converter-api.com/convert", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.usdzUrl) {
+                    alert("Conversión a USDZ completada.");
+                    downloadUSDZ(data.usdzUrl);
+                } else {
+                    alert("Error: No se pudo convertir a USDZ.");
+                }
+            })
+            .catch(error => {
+                alert("Error en la conversión a USDZ.");
+            });
+        }
+
+        function downloadUSDZ(usdzUrl) {
+            alert("Descargando USDZ...");
+
+            const a = document.createElement("a");
+            a.href = usdzUrl;
+            a.download = "converted_lamp_model.usdz";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            alert("USDZ descargado con éxito.");
         }
     </script>
 </body>
