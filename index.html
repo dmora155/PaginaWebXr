@@ -37,7 +37,7 @@
     <button id="convert">Convertir a Milímetros</button>
 
     <script>
-        const modelUrl = "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb"; // Archivo GLB en GitHub
+        const modelUrl = "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb"; // Archivo de la lámpara
 
         document.getElementById("convert").addEventListener("click", function () {
             alert("Iniciando descarga del modelo...");
@@ -91,7 +91,7 @@
                 // Crear un enlace de descarga
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = "converted_model.glb";
+                a.download = "converted_lamp_model.glb";
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
