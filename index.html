@@ -7,7 +7,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://threejs.org/examples/js/exporters/GLTFExporter.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@google/model-viewer"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -36,7 +35,7 @@
 </head>
 <body>
     <h1>Experiencia AR en iOS y Android</h1>
-    <p>Presiona el botón para iniciar AR.</p>
+    <p>Presiona el botón para iniciar AR con el formato adecuado para tu dispositivo.</p>
 
     <button id="start-ar">Iniciar AR</button>
     <div id="ar-container"></div>
@@ -54,13 +53,23 @@
         }
 
         const os = getOS();
-        const modelGLB = "https://dmora155.github.io/PruebaDePagina/modelo_original.glb";
 
+        // Usamos solo un archivo .glb de origen y el .usdz ya alojado
+        const modelGLB = "https://dmora155.github.io/PruebaDePagina/modelo_original.glb";
+        const modelUSDZ = "https://dmora155.github.io/PruebaDePagina/modelo_original.usdz"; // Asegúrate de subir el .usdz
+
+        document.getElementById("start-ar").innerText = os === "iOS" ? "Iniciar AR (USDZ)" : "Iniciar AR (GLB)";
         document.getElementById("start-ar").addEventListener("click", function () {
-            convertToMMAndExport(modelGLB);
+            if (os === "Android") {
+                convertToMMAndOpen(modelGLB);
+            } else if (os === "iOS") {
+                openInQuickLook(modelUSDZ);
+            } else {
+                alert("Tu dispositivo no es compatible con AR.");
+            }
         });
 
-        function convertToMMAndExport(modelUrl) {
+        function convertToMMAndOpen(modelUrl) {
             const loader = new THREE.GLTFLoader();
             loader.load(modelUrl, function (gltf) {
                 const model = gltf.scene;
@@ -77,28 +86,19 @@
                 model.scale.set(scaleFactor, scaleFactor, scaleFactor);
                 console.log(`Modelo convertido a milímetros con factor ${scaleFactor}.`);
 
-                exportAndOpenAR(model, os);
+                exportAndOpenAR(model);
             }, undefined, function (error) {
                 console.error("Error al cargar el modelo:", error);
-                alert("Error al cargar el modelo.");
+                openInSceneViewer(modelUrl);
             });
         }
 
-        function exportAndOpenAR(model, platform) {
+        function exportAndOpenAR(model) {
             const exporter = new THREE.GLTFExporter();
             exporter.parse(model, function (gltf) {
-                let blob;
-                let fileUrl;
-
-                if (platform === "Android") {
-                    blob = new Blob([gltf], { type: "model/gltf-binary" });
-                    fileUrl = URL.createObjectURL(blob);
-                    openInSceneViewer(fileUrl);
-                } else if (platform === "iOS") {
-                    convertGLBtoUSDZ(fileUrl);
-                } else {
-                    alert("Tu dispositivo no es compatible con AR.");
-                }
+                const blob = new Blob([gltf], { type: "model/gltf-binary" });
+                const fileUrl = URL.createObjectURL(blob);
+                openInSceneViewer(fileUrl);
             }, { binary: true });
         }
 
@@ -109,30 +109,12 @@
             arLink.click();
         }
 
-        function convertGLBtoUSDZ(glbUrl) {
-            fetch(`https://usdztoglbconverter.com/api?url=${encodeURIComponent(glbUrl)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.usdzUrl) {
-                        openInQuickLook(data.usdzUrl);
-                    } else {
-                        alert("Error al convertir a USDZ.");
-                    }
-                })
-                .catch(error => {
-                    console.error("Error en la conversión a USDZ:", error);
-                    alert("Error al convertir el archivo.");
-                });
-        }
-
         function openInQuickLook(usdzUrl) {
             if (!usdzUrl) {
                 alert("Este objeto no tiene una versión compatible con iOS.");
                 return;
             }
-
-            const quickLookUrl = `${usdzUrl}#allowsContentScaling=0&callToAction=Ver en AR`;
-            window.location.href = quickLookUrl;
+            window.location.href = `${usdzUrl}#allowsContentScaling=0&callToAction=Ver en AR`;
         }
     </script>
 </body>
