@@ -149,10 +149,13 @@
         }
 
         function openInSceneViewer(modelUrl) {
+            console.log("Abriendo en Scene Viewer:", modelUrl);
             const arLink = document.createElement("a");
             arLink.setAttribute("href", `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`);
             arLink.setAttribute("rel", "ar");
+            document.body.appendChild(arLink);
             arLink.click();
+            document.body.removeChild(arLink);
         }
 
         function openInQuickLook(usdzUrl) {
@@ -160,6 +163,7 @@
                 alert("No se pudo generar la versión USDZ.");
                 return;
             }
+            console.log("Abriendo en Quick Look:", usdzUrl);
             window.location.href = `${usdzUrl}#allowsContentScaling=0&callToAction=Ver en AR`;
         }
     </script>
