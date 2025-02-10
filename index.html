@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Experiencia AR en iOS y Android</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://threejs.org/examples/js/exporters/GLTFExporter.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -58,33 +61,96 @@
         const models = {
             coin: {
                 name: "Moneda de Super Mario",
-                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz"
+                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb"
             },
             mushroom: {
                 name: "Hongo de Super Mario",
-                glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/ORIGAMI-PIP_table-lamp_V1_Shade-small.usdz"
+                glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb"
             },
             star: {
                 name: "Estrella de Super Mario",
-                glb: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf",
-                usdz: "https://dmora155.github.io/PruebaDePagina/sunflower.usdz"
+                glb: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf"
             }
         };
 
+        let processedGLB = null;
+        let processedUSDZ = null;
+
         document.getElementById("start-ar").addEventListener("click", function () {
             const selectedModel = document.getElementById("model-selector").value;
-            const model = models[selectedModel];
-
-            if (os === "Android") {
-                openInSceneViewer(model.glb);
-            } else if (os === "iOS") {
-                openInQuickLook(model.usdz);
-            } else {
-                alert("Tu dispositivo no es compatible con AR.");
-            }
+            processModel(models[selectedModel]);
         });
+
+        function processModel(model) {
+            console.log(`Cargando modelo: ${model.glb}`);
+
+            const loader = new THREE.GLTFLoader();
+            loader.load(model.glb, function (gltf) {
+                const modelScene = gltf.scene;
+                const boundingBox = new THREE.Box3().setFromObject(modelScene);
+                const size = boundingBox.getSize(new THREE.Vector3());
+
+                const maxDimension = Math.max(size.x, size.y, size.z);
+                let scaleFactor = 1;
+
+                if (maxDimension > 1) {
+                    scaleFactor = 1000; // Convertir a milímetros
+                }
+
+                modelScene.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                console.log(`Modelo convertido a milímetros con factor ${scaleFactor}.`);
+
+                exportGLB(modelScene, model);
+            }, undefined, function (error) {
+                console.error("Error al cargar el modelo:", error);
+                alert("Error al cargar el modelo.");
+            });
+        }
+
+        function exportGLB(model, modelInfo) {
+            console.log("Exportando GLB corregido...");
+            const exporter = new THREE.GLTFExporter();
+            exporter.parse(model, function (gltf) {
+                const blob = new Blob([gltf], { type: "model/gltf-binary" });
+                processedGLB = URL.createObjectURL(blob);
+                console.log("GLB exportado y almacenado:", processedGLB);
+
+                if (os === "iOS") {
+                    convertToUSDZ(processedGLB, modelInfo);
+                } else {
+                    openAR();
+                }
+            }, { binary: true });
+        }
+
+        function convertToUSDZ(glbUrl, modelInfo) {
+            console.log("Convirtiendo GLB a USDZ...");
+            fetch(`https://usdztoglbconverter.com/api?url=${encodeURIComponent(glbUrl)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.usdzUrl) {
+                        processedUSDZ = data.usdzUrl;
+                        console.log("USDZ generado con escala corregida:", processedUSDZ);
+                        openAR();
+                    } else {
+                        alert("Error al convertir a USDZ.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error en la conversión a USDZ:", error);
+                    alert("Error al convertir el archivo.");
+                });
+        }
+
+        function openAR() {
+            if (os === "Android" && processedGLB) {
+                openInSceneViewer(processedGLB);
+            } else if (os === "iOS" && processedUSDZ) {
+                openInQuickLook(processedUSDZ);
+            } else {
+                alert("No se pudo abrir el modelo.");
+            }
+        }
 
         function openInSceneViewer(modelUrl) {
             console.log("Abriendo Scene Viewer con:", modelUrl);
