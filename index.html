@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +16,7 @@
             padding: 20px;
             background-color: #f8f8f8;
         }
+
         button {
             padding: 10px 15px;
             font-size: 16px;
@@ -25,17 +27,21 @@
             cursor: pointer;
             margin: 10px;
         }
+
         button:hover {
             background-color: #ffbb00;
         }
+
         #ar-container {
             margin-top: 20px;
         }
+
         .object-selection {
             margin: 20px 0;
         }
     </style>
 </head>
+
 <body>
     <h1>Experiencia AR en iOS y Android</h1>
     <p>Selecciona un objeto para verlo en AR con la escala corregida.</p>
@@ -66,18 +72,22 @@
         // Modelos con sus versiones GLB y USDZ
         const objects = {
             coin: {
-                glb: "https://dmora155.github.io/PruebaDePagina/untitled.stl",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz"
+                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
+                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz",
+                scale: 1.2 // Factor de escala para el hongo
             },
             mushroom: {
                 glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Mushroom.usdz"
+                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Mushroom.usdz",
+                scale: 0.5 // Factor de escala específico para la moneda
             },
             star: {
                 glb: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Star.usdz"
+                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Star.usdz",
+                scale: 0.8 // Factor de escala para la estrella
             }
         };
+
         function openAR(objectKey) {
             if (os === "iOS") {
                 openInQuickLook(objects[objectKey].usdz);
@@ -101,27 +111,10 @@
 
             loader.load(modelUrl, function (gltf) {
                 const model = gltf.scene;
-                const boundingBox = new THREE.Box3().setFromObject(model);
-                const size = boundingBox.getSize(new THREE.Vector3());
-
-                const maxDimension = Math.max(size.x, size.y, size.z);
-                let scaleFactor = 1;
-
-                // Convertir a milímetros según la escala detectada
-                if (maxDimension >= 1000) {
-                    scaleFactor = 0.001; // Modelo en km -> convertir a mm
-                } else if (maxDimension >= 100) {
-                    scaleFactor = 0.01; // Modelo en metros -> convertir a mm
-                } else if (maxDimension >= 10) {
-                    scaleFactor = 0.1; // Modelo en decímetros -> convertir a mm
-                } else if (maxDimension >= 1) {
-                    scaleFactor = 1; // Modelo ya en mm
-                } else {
-                    scaleFactor = 10; // Modelo en cm -> convertir a mm
-                }
+                const scaleFactor = objects[objectKey]?.scale || 1; // Usar la escala definida o 1 por defecto
 
                 model.scale.set(scaleFactor, scaleFactor, scaleFactor);
-                alert(`Modelo ${objectKey} escalado a milímetros con factor ${scaleFactor}.`);
+                alert(`Modelo ${objectKey} escalado con factor ${scaleFactor}.`);
 
                 exportGLB(model, objectKey);
             }, undefined, function (error) {
@@ -149,4 +142,5 @@
         }
     </script>
 </body>
+
 </html>
