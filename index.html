@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Experiencia AR en iOS y Android</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://threejs.org/examples/js/exporters/GLTFExporter.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -30,9 +27,6 @@
         button:hover {
             background-color: #ffbb00;
         }
-        #ar-container {
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
@@ -46,7 +40,6 @@
     </select>
 
     <button id="start-ar">Iniciar AR</button>
-    <div id="ar-container"></div>
 
     <script>
         function getOS() {
@@ -65,105 +58,41 @@
         const models = {
             coin: {
                 name: "Moneda de Super Mario",
-                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb"
+                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
+                usdz: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.usdz"
             },
             mushroom: {
                 name: "Hongo de Super Mario",
-                glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb"
+                glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
+                usdz: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.usdz"
             },
             star: {
                 name: "Estrella de Super Mario",
-                glb: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf"
+                glb: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf",
+                usdz: "https://dmora155.github.io/PruebaDePagina/sunflower.usdz"
             }
         };
 
-        let processedGLB = null;
-        let processedUSDZ = null;
-
         document.getElementById("start-ar").addEventListener("click", function () {
             const selectedModel = document.getElementById("model-selector").value;
-            processModel(models[selectedModel]);
+            const model = models[selectedModel];
+
+            if (os === "Android") {
+                openInSceneViewer(model.glb);
+            } else if (os === "iOS") {
+                openInQuickLook(model.usdz);
+            } else {
+                alert("Tu dispositivo no es compatible con AR.");
+            }
         });
 
-        function processModel(model) {
-            const loader = new THREE.GLTFLoader();
-            loader.load(model.glb, function (gltf) {
-                const modelScene = gltf.scene;
-                const boundingBox = new THREE.Box3().setFromObject(modelScene);
-                const size = boundingBox.getSize(new THREE.Vector3());
-
-                const maxDimension = Math.max(size.x, size.y, size.z);
-                let scaleFactor = 1;
-
-                if (maxDimension > 1) {
-                    scaleFactor = 1000; // Convertir a milímetros
-                }
-
-                modelScene.scale.set(scaleFactor, scaleFactor, scaleFactor);
-                console.log(`Modelo convertido a milímetros con factor ${scaleFactor}.`);
-
-                exportGLB(modelScene, model);
-            }, undefined, function (error) {
-                console.error("Error al cargar el modelo:", error);
-                alert("Error al cargar el modelo.");
-            });
-        }
-
-        function exportGLB(model, modelInfo) {
-            const exporter = new THREE.GLTFExporter();
-            exporter.parse(model, function (gltf) {
-                const blob = new Blob([gltf], { type: "model/gltf-binary" });
-                processedGLB = URL.createObjectURL(blob);
-                console.log("GLB exportado y almacenado.");
-
-                convertToUSDZ(processedGLB, modelInfo);
-            }, { binary: true });
-        }
-
-        function convertToUSDZ(glbUrl, modelInfo) {
-            fetch(`https://usdztoglbconverter.com/api?url=${encodeURIComponent(glbUrl)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.usdzUrl) {
-                        processedUSDZ = data.usdzUrl;
-                        console.log("USDZ generado con escala corregida.");
-                        openAR();
-                    } else {
-                        alert("Error al convertir a USDZ.");
-                    }
-                })
-                .catch(error => {
-                    console.error("Error en la conversión a USDZ:", error);
-                    alert("Error al convertir el archivo.");
-                });
-        }
-
-        function openAR() {
-            if (os === "Android" && processedGLB) {
-                openInSceneViewer(processedGLB);
-            } else if (os === "iOS" && processedUSDZ) {
-                openInQuickLook(processedUSDZ);
-            } else {
-                alert("No se pudo abrir el modelo.");
-            }
-        }
-
         function openInSceneViewer(modelUrl) {
-            console.log("Abriendo en Scene Viewer:", modelUrl);
-            const arLink = document.createElement("a");
-            arLink.setAttribute("href", `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`);
-            arLink.setAttribute("rel", "ar");
-            document.body.appendChild(arLink);
-            arLink.click();
-            document.body.removeChild(arLink);
+            console.log("Abriendo Scene Viewer con:", modelUrl);
+            window.location.href = `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`;
         }
 
         function openInQuickLook(usdzUrl) {
-            if (!usdzUrl) {
-                alert("No se pudo generar la versión USDZ.");
-                return;
-            }
-            console.log("Abriendo en Quick Look:", usdzUrl);
+            console.log("Abriendo Quick Look con:", usdzUrl);
             window.location.href = `${usdzUrl}#allowsContentScaling=0&callToAction=Ver en AR`;
         }
     </script>
