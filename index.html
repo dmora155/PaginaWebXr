@@ -72,7 +72,7 @@
         // Modelos con sus versiones GLB y USDZ
         const objects = {
             coin: {
-                glb: "https://dmora155.github.io/PruebaDePagina/lampara.glb",
+                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
                 usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz"
             },
             mushroom: {
@@ -112,10 +112,10 @@
                 const size = boundingBox.getSize(new THREE.Vector3());
 
                 // Establecer una escala específica (ajústala según tus necesidades)
-                const targetHeight = 2; // 1 metro de altura
+                const targetHeight = 0.1; // 1 metro de altura
                 const scaleFactor = targetHeight / size.y; // Ajustar basado en la altura
 
-                model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                model.scale.set(0.1, 0.1, 0.1);
                 alert(`Modelo ${objectKey} escalado a ${targetHeight} metros con factor ${scaleFactor}.`);
 ac
                 exportGLB(model, objectKey);
