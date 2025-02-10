@@ -54,6 +54,8 @@
                 const boundingBox = new THREE.Box3().setFromObject(model);
                 const size = boundingBox.getSize(new THREE.Vector3());
 
+                alert(`Dimensiones originales: X=${size.x}, Y=${size.y}, Z=${size.z}`);
+
                 const maxDimension = Math.max(size.x, size.y, size.z);
                 let scaleFactor = 1;
 
@@ -80,21 +82,32 @@
 
         function exportGLB(model) {
             alert("Exportando modelo corregido...");
+
             const exporter = new THREE.GLTFExporter();
 
-            exporter.parse(model, function (glb) {
+            exporter.parse(model, function (result) {
+                if (!result) {
+                    alert("Error: No se pudo exportar el modelo.");
+                    return;
+                }
+
                 alert("Modelo exportado correctamente, generando archivo...");
 
-                const blob = new Blob([glb], { type: "model/gltf-binary" });
+                const blob = new Blob([result], { type: "model/gltf-binary" });
                 const url = URL.createObjectURL(blob);
+
+                // Verificar si el archivo se generó correctamente
+                alert(`Archivo generado en memoria: ${url}`);
 
                 // Crear un enlace de descarga
                 const a = document.createElement("a");
                 a.href = url;
                 a.download = "converted_lamp_model.glb";
+
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
+
                 alert("Archivo descargado con éxito.");
             }, { binary: true });
         }
