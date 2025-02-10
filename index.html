@@ -66,8 +66,8 @@
         // Modelos con sus versiones GLB y USDZ
         const objects = {
             coin: {
-                glb: "https://dmora155.github.io/PruebaDePagina/converted_lamp_model.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz"
+                glb: "https://dmora155.github.io/PruebaDePagina/cube.glb",
+                usdz: "https://dmora155.github.io/PruebaDePagina/3dpea.com_cube.usdz"
             },
             mushroom: {
                 glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
@@ -123,6 +123,7 @@
 
                 model.scale.set(scaleFactor, scaleFactor, scaleFactor);
                 alert(`Modelo ${objectKey} escalado a milímetros con factor ${scaleFactor}.`);
+console.alert(model)
 
                 exportGLB(model, objectKey);
             }, undefined, function (error) {
