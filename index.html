@@ -67,7 +67,7 @@
         const objects = {
             coin: {
                 glb: "https://dmora155.github.io/PruebaDePagina/untitled.stl",
-                usdz: "https://dmora155.github.io/PruebaDePagina/3dpea.com_cube.usdz"
+                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz"
             },
             mushroom: {
                 glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
@@ -78,12 +78,11 @@
                 usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Star.usdz"
             }
         };
-
         function openAR(objectKey) {
             if (os === "iOS") {
                 openInQuickLook(objects[objectKey].usdz);
             } else if (os === "Android") {
-                openInSceneViewer(objects[objectKey].glb, objectKey);
+                openInSceneViewer(objects[objectKey].slt, objectKey);
             } else {
                 alert("Tu dispositivo no es compatible con AR.");
             }
@@ -110,20 +109,19 @@
 
                 // Convertir a milímetros según la escala detectada
                 if (maxDimension >= 1000) {
-                    scaleFactor = 0.0001; // Modelo en km -> convertir a mm
+                    scaleFactor = 0.001; // Modelo en km -> convertir a mm
                 } else if (maxDimension >= 100) {
-                    scaleFactor = 0.001; // Modelo en metros -> convertir a mm
+                    scaleFactor = 0.01; // Modelo en metros -> convertir a mm
                 } else if (maxDimension >= 10) {
-                    scaleFactor = 0.01; // Modelo en decímetros -> convertir a mm
+                    scaleFactor = 0.1; // Modelo en decímetros -> convertir a mm
                 } else if (maxDimension >= 1) {
-                    scaleFactor = 0.1; // Modelo ya en mm
+                    scaleFactor = 1; // Modelo ya en mm
                 } else {
-                    scaleFactor = 1; // Modelo en cm -> convertir a mm
+                    scaleFactor = 10; // Modelo en cm -> convertir a mm
                 }
 
                 model.scale.set(scaleFactor, scaleFactor, scaleFactor);
                 alert(`Modelo ${objectKey} escalado a milímetros con factor ${scaleFactor}.`);
-console.alert(model)
 
                 exportGLB(model, objectKey);
             }, undefined, function (error) {
