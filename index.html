@@ -6,6 +6,7 @@
     <title>Experiencia AR en Android e iOS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://threejs.org/examples/js/exporters/GLTFExporter.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -34,7 +35,7 @@
 </head>
 <body>
     <h1>Experiencia AR en Android e iOS</h1>
-    <p>Elige un objeto y míralo en AR en tu dispositivo.</p>
+    <p>Elige un objeto y míralo en AR con la escala corregida.</p>
 
     <div>
         <button onclick="openAR('coin')">Moneda</button>
@@ -45,7 +46,6 @@
     <div id="ar-container"></div>
 
     <script>
-        // Detectar el sistema operativo
         function getOS() {
             const userAgent = navigator.userAgent || navigator.vendor;
             if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
@@ -55,16 +55,14 @@
             } else {
                 return "No compatible";
             }
-}
-
+        }
 
         const os = getOS();
 
-        // Modelos disponibles en diferentes formatos
         const objects = {
             coin: {
                 glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz"
+                usdz: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.usdz"
             },
             mushroom: {
                 glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
@@ -80,12 +78,59 @@
             const model = objects[objectKey];
 
             if (os === "Android") {
-                openInSceneViewer(model.glb);
+                convertToCmAndOpen(model.glb, "glb");
             } else if (os === "iOS") {
                 openInQuickLook(model.usdz);
             } else {
                 alert("Tu dispositivo no es compatible con AR.");
             }
+        }
+
+        function convertToCmAndOpen(modelUrl, format) {
+            const loader = new THREE.GLTFLoader();
+
+            loader.load(modelUrl, function (gltf) {
+                const model = gltf.scene;
+                const boundingBox = new THREE.Box3().setFromObject(model);
+                const size = boundingBox.getSize(new THREE.Vector3());
+
+                const maxDimension = Math.max(size.x, size.y, size.z);
+                let scaleFactor = 1;
+
+                if (maxDimension > 100) {
+                    scaleFactor = 0.1;
+                } else if (maxDimension > 10) {
+                    scaleFactor = 1;
+                } else if (maxDimension > 1) {
+                    scaleFactor = 10;
+                } else {
+                    scaleFactor = 100;
+                }
+
+                model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                console.log(`Modelo convertido con factor ${scaleFactor} a centímetros.`);
+
+                exportAndOpenAR(model, format);
+            }, undefined, function (error) {
+                console.error("Error al cargar el modelo:", error);
+                openInSceneViewer(modelUrl);
+            });
+        }
+
+        function exportAndOpenAR(model, format) {
+            const exporter = new THREE.GLTFExporter();
+            const options = format === "glb" ? { binary: true } : { binary: false };
+
+            exporter.parse(model, function (gltf) {
+                let blob;
+                if (format === "glb") {
+                    blob = new Blob([gltf], { type: "model/gltf-binary" });
+                } else {
+                    blob = new Blob([JSON.stringify(gltf)], { type: "application/json" });
+                }
+                const url = URL.createObjectURL(blob);
+                openInSceneViewer(url);
+            }, options);
         }
 
         function openInSceneViewer(modelUrl) {
@@ -97,7 +142,7 @@
 
         function openInQuickLook(modelUrl) {
             const arLink = document.createElement("a");
-            arLink.setAttribute("href", modelUrl);
+            arLink.setAttribute("href", `${modelUrl}#allowsContentScaling=0`);
             arLink.setAttribute("rel", "ar");
             arLink.click();
         }
