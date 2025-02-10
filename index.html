@@ -82,14 +82,14 @@
 
         document.getElementById("start-ar").addEventListener("click", function () {
             const selectedModel = document.getElementById("model-selector").value;
-            processModel(models[selectedModel].glb);
+            processModel(models[selectedModel]);
         });
 
-        function processModel(modelUrl) {
+        function processModel(model) {
             const loader = new THREE.GLTFLoader();
-            loader.load(modelUrl, function (gltf) {
-                const model = gltf.scene;
-                const boundingBox = new THREE.Box3().setFromObject(model);
+            loader.load(model.glb, function (gltf) {
+                const modelScene = gltf.scene;
+                const boundingBox = new THREE.Box3().setFromObject(modelScene);
                 const size = boundingBox.getSize(new THREE.Vector3());
 
                 const maxDimension = Math.max(size.x, size.y, size.z);
@@ -99,34 +99,34 @@
                     scaleFactor = 1000; // Convertir a milímetros
                 }
 
-                model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                modelScene.scale.set(scaleFactor, scaleFactor, scaleFactor);
                 console.log(`Modelo convertido a milímetros con factor ${scaleFactor}.`);
 
-                exportGLB(model);
+                exportGLB(modelScene, model);
             }, undefined, function (error) {
                 console.error("Error al cargar el modelo:", error);
                 alert("Error al cargar el modelo.");
             });
         }
 
-        function exportGLB(model) {
+        function exportGLB(model, modelInfo) {
             const exporter = new THREE.GLTFExporter();
             exporter.parse(model, function (gltf) {
                 const blob = new Blob([gltf], { type: "model/gltf-binary" });
                 processedGLB = URL.createObjectURL(blob);
                 console.log("GLB exportado y almacenado.");
 
-                convertToUSDZ(processedGLB);
+                convertToUSDZ(processedGLB, modelInfo);
             }, { binary: true });
         }
 
-        function convertToUSDZ(glbUrl) {
+        function convertToUSDZ(glbUrl, modelInfo) {
             fetch(`https://usdztoglbconverter.com/api?url=${encodeURIComponent(glbUrl)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.usdzUrl) {
                         processedUSDZ = data.usdzUrl;
-                        console.log("USDZ generado y almacenado.");
+                        console.log("USDZ generado con escala corregida.");
                         openAR();
                     } else {
                         alert("Error al convertir a USDZ.");
