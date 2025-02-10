@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conversión de GLB a Milímetros y USDZ</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script> 
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/exporters/GLTFExporter.js"></script>
     <style>
         body {
@@ -32,21 +32,35 @@
 </head>
 <body>
     <h1>Conversión de GLB a Milímetros y USDZ</h1>
-    <p>Descarga el archivo corregido.</p>
+    <p>Descarga el archivo corregido en GLB o USDZ.</p>
 
-    <button id="convert">Convertir a Milímetros y USDZ</button>
+    <button id="convert">Convertir a Milímetros</button>
 
     <script>
+        const loader = new THREE.GLTFLoader();
+        const exporter = new THREE.GLTFExporter();
         const modelUrl = "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb";
 
         document.getElementById("convert").addEventListener("click", function () {
             alert(`Intentando descargar: ${modelUrl}`);
-            convertGLBToMM();
+            testModelLoad();
         });
 
-        function convertGLBToMM() {
-            const loader = new THREE.GLTFLoader();
+        function testModelLoad() {
+            fetch(modelUrl, { mode: "cors" })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error HTTP: ${response.status}`);
+                    }
+                    alert("El archivo es accesible. Intentando cargarlo en Three.js...");
+                    convertGLBToMM();
+                })
+                .catch(error => {
+                    alert(`No se pudo acceder al archivo. Posible problema de CORS o URL incorrecta.\nError: ${error}`);
+                });
+        }
 
+        function convertGLBToMM() {
             loader.load(modelUrl, function (gltf) {
                 alert("Modelo cargado correctamente.");
 
@@ -60,30 +74,30 @@
                 let scaleFactor = 1;
 
                 if (maxDimension >= 1000) {
-                    scaleFactor = 0.001;
+                    scaleFactor = 0.001; // Modelo en km -> convertir a mm
                 } else if (maxDimension >= 100) {
-                    scaleFactor = 0.01;
+                    scaleFactor = 0.01; // Modelo en metros -> convertir a mm
                 } else if (maxDimension >= 10) {
-                    scaleFactor = 0.1;
+                    scaleFactor = 0.1; // Modelo en decímetros -> convertir a mm
                 } else if (maxDimension >= 1) {
-                    scaleFactor = 1;
+                    scaleFactor = 1; // Modelo ya en mm
                 } else {
-                    scaleFactor = 10;
+                    scaleFactor = 10; // Modelo en cm -> convertir a mm
                 }
 
                 model.scale.set(scaleFactor, scaleFactor, scaleFactor);
                 alert(`Modelo escalado con factor ${scaleFactor} a milímetros.`);
 
                 exportGLB(model);
-            }, undefined, function (error) {
-                alert("Error al cargar el modelo.");
+            }, function (xhr) {
+                alert(`Progreso de carga: ${xhr.loaded} bytes descargados.`);
+            }, function (error) {
+                alert(`Error al cargar el modelo en Three.js: ${error}`);
             });
         }
 
         function exportGLB(model) {
             alert("Exportando modelo corregido...");
-
-            const exporter = new THREE.GLTFExporter();
 
             exporter.parse(model, function (glb) {
                 if (!glb) {
@@ -96,18 +110,17 @@
                 const blob = new Blob([glb], { type: "model/gltf-binary" });
                 const url = URL.createObjectURL(blob);
 
-                alert(`Archivo GLB generado: ${url}`);
-
-                // Descargar GLB
+                // Crear un enlace de descarga
                 const a = document.createElement("a");
                 a.href = url;
                 a.download = "converted_lamp_model.glb";
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                alert("GLB descargado con éxito.");
 
-                // Enviar a conversión a USDZ
+                alert("Archivo GLB descargado con éxito.");
+
+                // Intentar convertir a USDZ
                 convertToUSDZ(blob);
             }, { binary: true });
         }
@@ -115,37 +128,33 @@
         function convertToUSDZ(glbBlob) {
             alert("Convirtiendo GLB a USDZ...");
 
+            // Crear un formulario para enviar el archivo
             const formData = new FormData();
-            formData.append("file", glbBlob, "converted_lamp_model.glb");
+            formData.append("file", glbBlob, "converted_model.glb");
 
-            fetch("https://usdztoglb-converter-api.com/convert", {
+            fetch("https://api.meshconvert.com/convert", {
                 method: "POST",
                 body: formData
             })
             .then(response => response.json())
             .then(data => {
-                if (data.usdzUrl) {
-                    alert("Conversión a USDZ completada.");
-                    downloadUSDZ(data.usdzUrl);
+                if (data.success && data.usdz_url) {
+                    alert("Conversión a USDZ completada. Descarga disponible.");
+
+                    // Crear enlace de descarga para USDZ
+                    const a = document.createElement("a");
+                    a.href = data.usdz_url;
+                    a.download = "converted_lamp_model.usdz";
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
                 } else {
-                    alert("Error: No se pudo convertir a USDZ.");
+                    alert("Error al convertir a USDZ.");
                 }
             })
             .catch(error => {
-                alert("Error en la conversión a USDZ.");
+                alert(`Error en la conversión a USDZ: ${error}`);
             });
-        }
-
-        function downloadUSDZ(usdzUrl) {
-            alert("Descargando USDZ...");
-
-            const a = document.createElement("a");
-            a.href = usdzUrl;
-            a.download = "converted_lamp_model.usdz";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            alert("USDZ descargado con éxito.");
         }
     </script>
 </body>
