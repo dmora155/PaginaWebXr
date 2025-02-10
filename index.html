@@ -57,6 +57,7 @@
         }
 
         const os = getOS();
+        alert("Sistema detectado: " + os);
 
         const models = {
             coin: {
@@ -78,11 +79,12 @@
 
         document.getElementById("start-ar").addEventListener("click", function () {
             const selectedModel = document.getElementById("model-selector").value;
+            alert("Modelo seleccionado: " + selectedModel);
             processModel(models[selectedModel]);
         });
 
         function processModel(model) {
-            console.log(`Cargando modelo: ${model.glb}`);
+            alert("Cargando modelo desde: " + model.glb);
 
             const loader = new THREE.GLTFLoader();
             loader.load(model.glb, function (gltf) {
@@ -98,22 +100,21 @@
                 }
 
                 modelScene.scale.set(scaleFactor, scaleFactor, scaleFactor);
-                console.log(`Modelo convertido a milímetros con factor ${scaleFactor}.`);
+                alert("Escala aplicada con factor: " + scaleFactor);
 
                 exportGLB(modelScene, model);
             }, undefined, function (error) {
-                console.error("Error al cargar el modelo:", error);
                 alert("Error al cargar el modelo.");
             });
         }
 
         function exportGLB(model, modelInfo) {
-            console.log("Exportando GLB corregido...");
+            alert("Exportando GLB corregido...");
             const exporter = new THREE.GLTFExporter();
             exporter.parse(model, function (gltf) {
                 const blob = new Blob([gltf], { type: "model/gltf-binary" });
                 processedGLB = URL.createObjectURL(blob);
-                console.log("GLB exportado y almacenado:", processedGLB);
+                alert("GLB exportado correctamente.");
 
                 if (os === "iOS") {
                     convertToUSDZ(processedGLB, modelInfo);
@@ -124,21 +125,20 @@
         }
 
         function convertToUSDZ(glbUrl, modelInfo) {
-            console.log("Convirtiendo GLB a USDZ...");
+            alert("Convirtiendo GLB a USDZ...");
             fetch(`https://usdztoglbconverter.com/api?url=${encodeURIComponent(glbUrl)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.usdzUrl) {
                         processedUSDZ = data.usdzUrl;
-                        console.log("USDZ generado con escala corregida:", processedUSDZ);
+                        alert("USDZ generado correctamente.");
                         openAR();
                     } else {
                         alert("Error al convertir a USDZ.");
                     }
                 })
                 .catch(error => {
-                    console.error("Error en la conversión a USDZ:", error);
-                    alert("Error al convertir el archivo.");
+                    alert("Error en la conversión a USDZ.");
                 });
         }
 
@@ -153,12 +153,12 @@
         }
 
         function openInSceneViewer(modelUrl) {
-            console.log("Abriendo Scene Viewer con:", modelUrl);
+            alert("Abriendo en Scene Viewer...");
             window.location.href = `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`;
         }
 
         function openInQuickLook(usdzUrl) {
-            console.log("Abriendo Quick Look con:", usdzUrl);
+            alert("Abriendo en Quick Look...");
             window.location.href = `${usdzUrl}#allowsContentScaling=0&callToAction=Ver en AR`;
         }
     </script>
