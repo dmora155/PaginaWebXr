@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Experiencia AR en iOS y Android</title>
+    <title>Conversión de GLB a USDZ con Escala en Milímetros</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://threejs.org/examples/js/exporters/GLTFExporter.js"></script>
@@ -28,78 +28,30 @@
         button:hover {
             background-color: #ffbb00;
         }
-        #ar-container {
+        #usdz-download {
+            display: none;
             margin-top: 20px;
-        }
-        .object-selection {
-            margin: 20px 0;
         }
     </style>
 </head>
 <body>
-    <h1>Experiencia AR en iOS y Android</h1>
-    <p>Selecciona un objeto para verlo en AR con la escala corregida.</p>
+    <h1>Conversión de GLB a USDZ con Escala en Milímetros</h1>
+    <p>Descarga el archivo USDZ corregido.</p>
 
-    <div class="object-selection">
-        <button onclick="openAR('coin')">Moneda</button>
-        <button onclick="openAR('mushroom')">Hongo</button>
-        <button onclick="openAR('star')">Estrella</button>
-    </div>
-
-    <div id="ar-container"></div>
+    <button id="convert">Convertir y Descargar USDZ</button>
+    <a id="usdz-download" download="converted_model.usdz">Descargar USDZ</a>
 
     <script>
-        function getOS() {
-            const userAgent = navigator.userAgent || navigator.vendor;
-            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-                return "iOS";
-            } else if (/android/i.test(userAgent)) {
-                return "Android";
-            } else {
-                return "No compatible";
-            }
-        }
+        const modelUrl = "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb"; // Archivo GLB en GitHub
 
-        const os = getOS();
-        alert("Sistema detectado: " + os);
+        document.getElementById("convert").addEventListener("click", function () {
+            convertGLBToUSDZ();
+        });
 
-        // Modelos con sus versiones GLB y USDZ
-        const objects = {
-            coin: {
-                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz"
-            },
-            mushroom: {
-                glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Mushroom.usdz"
-            },
-            star: {
-                glb: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Star.usdz"
-            }
-        };
+        function convertGLBToUSDZ() {
+            alert("Descargando modelo...");
 
-        function openAR(objectKey) {
-            if (os === "iOS") {
-                openInQuickLook(objects[objectKey].usdz);
-            } else if (os === "Android") {
-                openInSceneViewer(objects[objectKey].glb, objectKey);
-            } else {
-                alert("Tu dispositivo no es compatible con AR.");
-            }
-        }
-
-        function openInSceneViewer(modelUrl, objectKey) {
-            alert("Abriendo modelo original en Scene Viewer...");
-            window.location.href = `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`;
-
-            // Iniciar conversión de escala en segundo plano
-            detectAndConvertToMm(modelUrl, objectKey);
-        }
-
-        function detectAndConvertToMm(modelUrl, objectKey) {
             const loader = new THREE.GLTFLoader();
-
             loader.load(modelUrl, function (gltf) {
                 const model = gltf.scene;
                 const boundingBox = new THREE.Box3().setFromObject(model);
@@ -108,7 +60,6 @@
                 const maxDimension = Math.max(size.x, size.y, size.z);
                 let scaleFactor = 1;
 
-                // Convertir a milímetros según la escala detectada
                 if (maxDimension >= 1000) {
                     scaleFactor = 0.001; // Modelo en km -> convertir a mm
                 } else if (maxDimension >= 100) {
@@ -122,31 +73,42 @@
                 }
 
                 model.scale.set(scaleFactor, scaleFactor, scaleFactor);
-                alert(`Modelo ${objectKey} escalado a milímetros con factor ${scaleFactor}.`);
+                alert(`Modelo escalado con factor ${scaleFactor} a milímetros.`);
 
-                exportGLB(model, objectKey);
+                exportGLB(model);
             }, undefined, function (error) {
-                alert(`Error al cargar el modelo ${objectKey}: ${error}`);
+                alert("Error al cargar el modelo.");
             });
         }
 
-        function exportGLB(model, objectKey) {
-            alert(`Exportando modelo ${objectKey} escalado...`);
+        function exportGLB(model) {
+            alert("Exportando modelo corregido...");
             const exporter = new THREE.GLTFExporter();
-
             exporter.parse(model, function (gltf) {
                 const blob = new Blob([gltf], { type: "model/gltf-binary" });
-                const convertedGLB = URL.createObjectURL(blob);
-                alert(`Modelo ${objectKey} corregido en milímetros.`);
+                const convertedGLBUrl = URL.createObjectURL(blob);
 
-                // Volver a abrir el modelo corregido en Scene Viewer
-                openInSceneViewer(convertedGLB, objectKey);
+                convertToUSDZ(convertedGLBUrl);
             }, { binary: true });
         }
 
-        function openInQuickLook(usdzUrl) {
-            alert("Abriendo en Quick Look...");
-            window.location.href = `${usdzUrl}#allowsContentScaling=0&callToAction=Ver en AR`;
+        function convertToUSDZ(glbUrl) {
+            alert("Convirtiendo GLB a USDZ...");
+
+            fetch(`https://usdztoglbconverter.com/api?url=${encodeURIComponent(glbUrl)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.usdzUrl) {
+                        alert("Conversión completada. Descarga el archivo USDZ.");
+                        document.getElementById("usdz-download").href = data.usdzUrl;
+                        document.getElementById("usdz-download").style.display = "block";
+                    } else {
+                        alert("Error al convertir a USDZ.");
+                    }
+                })
+                .catch(error => {
+                    alert("Error en la conversión a USDZ.");
+                });
         }
     </script>
 </body>
