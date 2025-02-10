@@ -40,9 +40,23 @@
         const modelUrl = "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb"; // Archivo de la lámpara
 
         document.getElementById("convert").addEventListener("click", function () {
-            alert("Iniciando descarga del modelo...");
-            convertGLBToMM();
+            alert(`Intentando descargar: ${modelUrl}`);
+            testModelLoad();
         });
+
+        function testModelLoad() {
+            fetch(modelUrl, { mode: "cors" })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error HTTP: ${response.status}`);
+                    }
+                    alert("El archivo es accesible. Intentando cargarlo en Three.js...");
+                    convertGLBToMM();
+                })
+                .catch(error => {
+                    alert(`No se pudo acceder al archivo. Posible problema de CORS o URL incorrecta.\nError: ${error}`);
+                });
+        }
 
         function convertGLBToMM() {
             const loader = new THREE.GLTFLoader();
@@ -75,8 +89,10 @@
                 alert(`Modelo escalado con factor ${scaleFactor} a milímetros.`);
 
                 exportGLB(model);
-            }, undefined, function (error) {
-                alert("Error al cargar el modelo.");
+            }, function (xhr) {
+                alert(`Progreso de carga: ${xhr.loaded} bytes descargados.`);
+            }, function (error) {
+                alert(`Error al cargar el modelo en Three.js: ${error}`);
             });
         }
 
@@ -85,15 +101,15 @@
 
             const exporter = new THREE.GLTFExporter();
 
-            exporter.parse(model, function (result) {
-                if (!result) {
+            exporter.parse(model, function (glb) {
+                if (!glb) {
                     alert("Error: No se pudo exportar el modelo.");
                     return;
                 }
 
                 alert("Modelo exportado correctamente, generando archivo...");
 
-                const blob = new Blob([result], { type: "model/gltf-binary" });
+                const blob = new Blob([glb], { type: "model/gltf-binary" });
                 const url = URL.createObjectURL(blob);
 
                 // Verificar si el archivo se generó correctamente
