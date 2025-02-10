@@ -73,31 +73,16 @@
         const objects = {
             coin: {
                 glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz",
-                scale: 2 // Factor de escala para el hongo
+                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz"
             },
-            mushroom: {
-                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz",
-                scale: 1.0 // Factor de escala para el hongo
-            },
-            star: {
-                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz",
-                scale: 0.5 // Factor de escala para el hongo
-            }
-            /*
             mushroom: {
                 glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Mushroom.usdz",
-                scale: 0.5 // Factor de escala específico para la moneda
+                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Mushroom.usdz"
             },
             star: {
                 glb: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Star.usdz",
-                scale: 0.8 // Factor de escala para la estrella
+                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Star.usdz"
             }
-                */
         };
 
         function openAR(objectKey) {
@@ -123,16 +108,22 @@
 
             loader.load(modelUrl, function (gltf) {
                 const model = gltf.scene;
-                const scaleFactor = objects[objectKey]?.scale || 1; // Usar la escala definida o 1 por defecto
+                const boundingBox = new THREE.Box3().setFromObject(model);
+                const size = boundingBox.getSize(new THREE.Vector3());
+
+                // Establecer una escala específica (ajústala según tus necesidades)
+                const targetHeight = 2; // 1 metro de altura
+                const scaleFactor = targetHeight / size.y; // Ajustar basado en la altura
 
                 model.scale.set(scaleFactor, scaleFactor, scaleFactor);
-                alert(`Modelo ${objectKey} escalado con factor ${scaleFactor}.`);
-
+                alert(`Modelo ${objectKey} escalado a ${targetHeight} metros con factor ${scaleFactor}.`);
+ac
                 exportGLB(model, objectKey);
             }, undefined, function (error) {
                 alert(`Error al cargar el modelo ${objectKey}: ${error}`);
             });
         }
+
 
         function exportGLB(model, objectKey) {
             alert(`Exportando modelo ${objectKey} escalado...`);
