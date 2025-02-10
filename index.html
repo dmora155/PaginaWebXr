@@ -59,28 +59,38 @@
         const os = getOS();
         alert("Sistema detectado: " + os);
 
+        // Archivos .glb y .usdz preconvertidos a milímetros
         const models = {
             coin: {
                 name: "Moneda de Super Mario",
-                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb"
+                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin_scaled.glb",
+                usdz: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin_scaled.usdz"
             },
             mushroom: {
                 name: "Hongo de Super Mario",
-                glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb"
+                glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl_scaled.glb",
+                usdz: "https://dmora155.github.io/PruebaDePagina/ImageToStl_scaled.usdz"
             },
             star: {
                 name: "Estrella de Super Mario",
-                glb: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf"
+                glb: "https://dmora155.github.io/PruebaDePagina/sunflower_scaled.glb",
+                usdz: "https://dmora155.github.io/PruebaDePagina/sunflower_scaled.usdz"
             }
         };
 
         let processedGLB = null;
-        let processedUSDZ = null;
 
         document.getElementById("start-ar").addEventListener("click", function () {
             const selectedModel = document.getElementById("model-selector").value;
             alert("Modelo seleccionado: " + selectedModel);
-            processModel(models[selectedModel]);
+
+            if (os === "iOS") {
+                openInQuickLook(models[selectedModel].usdz);
+            } else if (os === "Android") {
+                processModel(models[selectedModel]);
+            } else {
+                alert("Tu dispositivo no es compatible con AR.");
+            }
         });
 
         function processModel(model) {
@@ -102,54 +112,21 @@
                 modelScene.scale.set(scaleFactor, scaleFactor, scaleFactor);
                 alert("Escala aplicada con factor: " + scaleFactor);
 
-                exportGLB(modelScene, model);
+                exportGLB(modelScene);
             }, undefined, function (error) {
                 alert("Error al cargar el modelo.");
             });
         }
 
-        function exportGLB(model, modelInfo) {
+        function exportGLB(model) {
             alert("Exportando GLB corregido...");
             const exporter = new THREE.GLTFExporter();
             exporter.parse(model, function (gltf) {
                 const blob = new Blob([gltf], { type: "model/gltf-binary" });
                 processedGLB = URL.createObjectURL(blob);
                 alert("GLB exportado correctamente.");
-
-                if (os === "iOS") {
-                    convertToUSDZ(processedGLB, modelInfo);
-                } else {
-                    openAR();
-                }
-            }, { binary: true });
-        }
-
-        function convertToUSDZ(glbUrl, modelInfo) {
-            alert("Convirtiendo GLB a USDZ...");
-            fetch(`https://usdztoglbconverter.com/api?url=${encodeURIComponent(glbUrl)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.usdzUrl) {
-                        processedUSDZ = data.usdzUrl;
-                        alert("USDZ generado correctamente.");
-                        openAR();
-                    } else {
-                        alert("Error al convertir a USDZ.");
-                    }
-                })
-                .catch(error => {
-                    alert("Error en la conversión a USDZ.");
-                });
-        }
-
-        function openAR() {
-            if (os === "Android" && processedGLB) {
                 openInSceneViewer(processedGLB);
-            } else if (os === "iOS" && processedUSDZ) {
-                openInQuickLook(processedUSDZ);
-            } else {
-                alert("No se pudo abrir el modelo.");
-            }
+            }, { binary: true });
         }
 
         function openInSceneViewer(modelUrl) {
