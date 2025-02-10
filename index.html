@@ -115,7 +115,7 @@
                 const targetHeight = 0.1; // 1 metro de altura
                 const scaleFactor = targetHeight / size.y; // Ajustar basado en la altura
 
-                model.scale.set(0.1, 0.1, 0.1);
+                model.scale.set(0.01, 0.01, 0.01);
                 alert(`Modelo ${objectKey} escalado a ${targetHeight} metros con factor ${scaleFactor}.`);
 ac
                 exportGLB(model, objectKey);
