@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Experiencia AR en iOS y Android</title>
+    <title>Experiencia AR con Conversión a Milímetros</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://threejs.org/examples/js/exporters/GLTFExporter.js"></script>
@@ -31,78 +31,38 @@
         #ar-container {
             margin-top: 20px;
         }
-        .object-selection {
-            margin: 20px 0;
-        }
     </style>
 </head>
 <body>
-    <h1>Experiencia AR en iOS y Android</h1>
-    <p>Elige un objeto y míralo en AR en tu dispositivo.</p>
+    <h1>Experiencia AR con Conversión a Milímetros</h1>
+    <p>Elige un objeto y míralo en AR con la escala corregida.</p>
 
-    <div class="object-selection">
-        <button onclick="selectObject('coin')">Moneda</button>
-        <button onclick="selectObject('mushroom')">Hongo</button>
-        <button onclick="selectObject('star')">Estrella</button>
+    <div>
+        <button onclick="openAR('coin')">Moneda</button>
+        <button onclick="openAR('mushroom')">Hongo</button>
+        <button onclick="openAR('star')">Estrella</button>
     </div>
 
-    <button id="start-ar">Iniciar AR</button>
     <div id="ar-container"></div>
 
     <script>
-        function getOS() {
-            const userAgent = navigator.userAgent || navigator.vendor;
-            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-                return "iOS";
-            } else if (/android/i.test(userAgent)) {
-                return "Android";
-            } else {
-                return "No compatible";
-            }
-        }
-
-        const os = getOS();
-
         const objects = {
-            coin: {
-                name: "Moneda de Super Mario",
-                glb: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz"
-            },
-            mushroom: {
-                name: "Hongo de Super Mario",
-                glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
-                usdz: "https://dmora155.github.io/PruebaDePagina/ORIGAMI-PIP_table-lamp_V1_Shade-small.usdz"
-            },
-            star: {
-                name: "Estrella de Super Mario",
-                glb: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf",
-                usdz: "https://dmora155.github.io/PruebaDePagina/sunflower.usdz"
-            }
+            coin: "https://dmora155.github.io/PruebaDePagina/super_mario_bros_coin.glb",
+            mushroom: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
+            star: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf"
         };
 
-        let selectedObject = objects.coin; // Objeto predeterminado
+        function openAR(objectKey) {
+            const modelUrl = objects[objectKey];
 
-        document.addEventListener("DOMContentLoaded", function() {
-            document.getElementById("start-ar").addEventListener("click", startARSession);
-        });
+            // Abre Scene Viewer inmediatamente sin esperar la conversión
+            openInSceneViewer(modelUrl);
 
-        function selectObject(objectKey) {
-            selectedObject = objects[objectKey];
-            document.getElementById("start-ar").innerText = `Iniciar AR con ${selectedObject.name}`;
+            // Analiza la escala en segundo plano y convierte a milímetros
+            detectAndConvertToMm(modelUrl, objectKey);
         }
 
-        function startARSession() {
-            if (os === "Android") {
-                convertToCmAndOpen(selectedObject.glb);
-            } else if (os === "iOS") {
-                openInQuickLook(selectedObject.usdz);
-            } else {
-                alert("Tu dispositivo no es compatible con AR.");
-            }
-        }
-
-        function convertToCmAndOpen(modelUrl) {
+        function detectAndConvertToMm(modelUrl, objectKey) {
             const loader = new THREE.GLTFLoader();
 
             loader.load(modelUrl, function (gltf) {
@@ -113,58 +73,45 @@
                 const maxDimension = Math.max(size.x, size.y, size.z);
                 let scaleFactor = 1;
 
-                if (maxDimension > 100) {
-                    scaleFactor = 0.1;
-                } else if (maxDimension > 10) {
-                    scaleFactor = 1;
-                } else if (maxDimension > 1) {
-                    scaleFactor = 10;
+                // Conversión automática a milímetros
+                if (maxDimension >= 1000) {
+                    scaleFactor = 0.001; // Modelo en km -> convertir a mm
+                } else if (maxDimension >= 100) {
+                    scaleFactor = 0.01; // Modelo en metros -> convertir a mm
+                } else if (maxDimension >= 10) {
+                    scaleFactor = 0.1; // Modelo en decímetros -> convertir a mm
+                } else if (maxDimension >= 1) {
+                    scaleFactor = 1; // Modelo ya en milímetros
                 } else {
-                    scaleFactor = 100;
+                    scaleFactor = 10; // Modelo en centímetros -> convertir a mm
                 }
 
                 model.scale.set(scaleFactor, scaleFactor, scaleFactor);
-                console.log(`Modelo convertido con factor ${scaleFactor} a centímetros.`);
+                alert(`Modelo ${objectKey} convertido con factor ${scaleFactor} a milímetros.`);
 
-                exportAndOpenAR(model);
+                exportGLB(model, objectKey);
             }, undefined, function (error) {
-                console.error("Error al cargar el modelo:", error);
-                openInSceneViewer(modelUrl);
+                alert(`Error al cargar el modelo ${objectKey}: ${error}`);
             });
         }
 
-        function exportAndOpenAR(model) {
+        function exportGLB(model, objectKey) {
+            alert(`Exportando modelo ${objectKey} escalado...`);
             const exporter = new THREE.GLTFExporter();
 
             exporter.parse(model, function (gltf) {
                 const blob = new Blob([gltf], { type: "model/gltf-binary" });
-                const url = URL.createObjectURL(blob);
-                openInSceneViewer(url);
+                const convertedGLB = URL.createObjectURL(blob);
+                alert(`Modelo ${objectKey} exportado y corregido en milímetros.`);
+
+                // Volver a abrir el modelo corregido en Scene Viewer
+                openInSceneViewer(convertedGLB);
             }, { binary: true });
         }
 
         function openInSceneViewer(modelUrl) {
-            const arLink = document.createElement("a");
-            arLink.setAttribute("href", `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`);
-            arLink.setAttribute("rel", "ar");
-            arLink.click();
-        }
-
-        function openInQuickLook(modelUrl) {
-            if (!modelUrl) {
-                alert("Este objeto no tiene una versión compatible con iOS.");
-                return;
-            }
-
-            // Abrir Quick Look directamente en AR
-            const quickLookUrl = `${modelUrl}#allowsContentScaling=0&callToAction=Ver en AR`;
-
-            const a = document.createElement("a");
-            a.setAttribute("href", quickLookUrl);
-            a.setAttribute("rel", "ar");
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            alert("Abriendo en Scene Viewer...");
+            window.location.href = `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`;
         }
     </script>
 </body>
