@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversión de GLB a Milímetros</title>
+    <title>Experiencia AR en iOS y Android</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script> 
-    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/exporters/GLTFExporter.js"></script>
+    <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://threejs.org/examples/js/exporters/GLTFExporter.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,82 +28,125 @@
         button:hover {
             background-color: #ffbb00;
         }
+        #ar-container {
+            margin-top: 20px;
+        }
+        .object-selection {
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
-    <h1>Conversión de GLB a Milímetros</h1>
-    <p>Descarga el archivo corregido en GLB con la escala adecuada.</p>
+    <h1>Experiencia AR en iOS y Android</h1>
+    <p>Selecciona un objeto para verlo en AR con la escala corregida.</p>
 
-    <button id="convert">Convertir a Milímetros</button>
+    <div class="object-selection">
+        <button onclick="openAR('coin')">Moneda</button>
+        <button onclick="openAR('mushroom')">Hongo</button>
+        <button onclick="openAR('star')">Estrella</button>
+    </div>
+
+    <div id="ar-container"></div>
 
     <script>
-        const loader = new THREE.GLTFLoader();
-        const exporter = new THREE.GLTFExporter();
-        const modelUrl = "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb";
+        function getOS() {
+            const userAgent = navigator.userAgent || navigator.vendor;
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                return "iOS";
+            } else if (/android/i.test(userAgent)) {
+                return "Android";
+            } else {
+                return "No compatible";
+            }
+        }
 
-        document.getElementById("convert").addEventListener("click", function () {
-            alert(`Intentando descargar: ${modelUrl}`);
-            convertGLBToMM();
-        });
+        const os = getOS();
+        alert("Sistema detectado: " + os);
 
-        function convertGLBToMM() {
+        // Modelos con sus versiones GLB y USDZ
+        const objects = {
+            coin: {
+                glb: "https://dmora155.github.io/PruebaDePagina/converted_lamp_model.glb",
+                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Coin.usdz"
+            },
+            mushroom: {
+                glb: "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb",
+                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Mushroom.usdz"
+            },
+            star: {
+                glb: "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf",
+                usdz: "https://dmora155.github.io/PruebaDePagina/Super_Mario_Bros_Star.usdz"
+            }
+        };
+
+        function openAR(objectKey) {
+            if (os === "iOS") {
+                openInQuickLook(objects[objectKey].usdz);
+            } else if (os === "Android") {
+                openInSceneViewer(objects[objectKey].glb, objectKey);
+            } else {
+                alert("Tu dispositivo no es compatible con AR.");
+            }
+        }
+
+        function openInSceneViewer(modelUrl, objectKey) {
+            alert("Abriendo modelo original en Scene Viewer...");
+            window.location.href = `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`;
+
+            // Iniciar conversión de escala en segundo plano
+            detectAndConvertToMm(modelUrl, objectKey);
+        }
+
+        function detectAndConvertToMm(modelUrl, objectKey) {
+            const loader = new THREE.GLTFLoader();
+
             loader.load(modelUrl, function (gltf) {
-                alert("Modelo cargado correctamente.");
-
                 const model = gltf.scene;
                 const boundingBox = new THREE.Box3().setFromObject(model);
                 const size = boundingBox.getSize(new THREE.Vector3());
 
-                alert(`Dimensiones originales: X=${size.x}, Y=${size.y}, Z=${size.z}`);
-
-                // Determinar la unidad original y convertir a mm
+                const maxDimension = Math.max(size.x, size.y, size.z);
                 let scaleFactor = 1;
 
-                if (size.x > 10 || size.y > 10 || size.z > 10) {
-                    alert("El modelo parece estar en metros. Ajustando a milímetros.");
-                    scaleFactor = 1000;
-                } else if (size.x > 1 || size.y > 1 || size.z > 1) {
-                    alert("El modelo parece estar en centímetros. Ajustando a milímetros.");
-                    scaleFactor = 10;
+                // Convertir a milímetros según la escala detectada
+                if (maxDimension >= 1000) {
+                    scaleFactor = 0.001; // Modelo en km -> convertir a mm
+                } else if (maxDimension >= 100) {
+                    scaleFactor = 0.01; // Modelo en metros -> convertir a mm
+                } else if (maxDimension >= 10) {
+                    scaleFactor = 0.1; // Modelo en decímetros -> convertir a mm
+                } else if (maxDimension >= 1) {
+                    scaleFactor = 1; // Modelo ya en mm
                 } else {
-                    alert("El modelo ya está en milímetros.");
+                    scaleFactor = 10; // Modelo en cm -> convertir a mm
                 }
 
                 model.scale.set(scaleFactor, scaleFactor, scaleFactor);
-                alert(`Modelo escalado correctamente con factor ${scaleFactor} a milímetros.`);
+                alert(`Modelo ${objectKey} escalado a milímetros con factor ${scaleFactor}.`);
 
-                exportGLB(model);
-            }, function (xhr) {
-                alert(`Progreso de carga: ${xhr.loaded} bytes descargados.`);
-            }, function (error) {
-                alert(`Error al cargar el modelo en Three.js: ${error}`);
+                exportGLB(model, objectKey);
+            }, undefined, function (error) {
+                alert(`Error al cargar el modelo ${objectKey}: ${error}`);
             });
         }
 
-        function exportGLB(model) {
-            alert("Exportando modelo corregido...");
+        function exportGLB(model, objectKey) {
+            alert(`Exportando modelo ${objectKey} escalado...`);
+            const exporter = new THREE.GLTFExporter();
 
-            exporter.parse(model, function (glb) {
-                if (!glb) {
-                    alert("Error: No se pudo exportar el modelo.");
-                    return;
-                }
+            exporter.parse(model, function (gltf) {
+                const blob = new Blob([gltf], { type: "model/gltf-binary" });
+                const convertedGLB = URL.createObjectURL(blob);
+                alert(`Modelo ${objectKey} corregido en milímetros.`);
 
-                alert("Modelo exportado correctamente, generando archivo...");
-
-                const blob = new Blob([glb], { type: "model/gltf-binary" });
-                const url = URL.createObjectURL(blob);
-
-                // Crear un enlace de descarga
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "converted_lamp_model.glb";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-
-                alert("Archivo GLB descargado con éxito.");
+                // Volver a abrir el modelo corregido en Scene Viewer
+                openInSceneViewer(convertedGLB, objectKey);
             }, { binary: true });
+        }
+
+        function openInQuickLook(usdzUrl) {
+            alert("Abriendo en Quick Look...");
+            window.location.href = `${usdzUrl}#allowsContentScaling=0&callToAction=Ver en AR`;
         }
     </script>
 </body>
