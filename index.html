@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conversión de GLB a Milímetros</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://threejs.org/examples/js/exporters/GLTFExporter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/exporters/GLTFExporter.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -37,7 +37,11 @@
     <button id="convert">Convertir a Milímetros</button>
 
     <script>
-        const modelUrl = "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb"; // Archivo de la lámpara
+        // Importamos correctamente GLTFLoader y GLTFExporter
+        const loader = new THREE.GLTFLoader();
+        const exporter = new THREE.GLTFExporter();
+
+        const modelUrl = "https://dmora155.github.io/PruebaDePagina/ImageToStl.com_origami-pip_table-lamp_v1_shade-small.glb";
 
         document.getElementById("convert").addEventListener("click", function () {
             alert(`Intentando descargar: ${modelUrl}`);
@@ -59,8 +63,6 @@
         }
 
         function convertGLBToMM() {
-            const loader = new THREE.GLTFLoader();
-
             loader.load(modelUrl, function (gltf) {
                 alert("Modelo cargado correctamente.");
 
@@ -98,8 +100,6 @@
 
         function exportGLB(model) {
             alert("Exportando modelo corregido...");
-
-            const exporter = new THREE.GLTFExporter();
 
             exporter.parse(model, function (glb) {
                 if (!glb) {
