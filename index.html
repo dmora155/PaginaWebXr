@@ -48,7 +48,7 @@
 
     <div class="object-selection">
         <button onclick="openAR('Perfume1')">Perfume Ariana Grande</button>
-        <button onclick="openAR('Perfume2')">Lampara</button>
+        <button onclick="openAR('Perfume2')">Lámpara</button>
         <button onclick="openAR('star')">Modelo de prueba</button>
     </div>
 
@@ -73,15 +73,15 @@
         const objects = {
             Perfume1: {
                 glb: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FPerfume%20glb.glb?alt=media",
-                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FPerfume%20sin%20saber%20su%20altura.usdz?alt=media"
+                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FPerfume%20usdz.usdz?alt=media"
             },
             Perfume2: {
                 glb: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FLampara%20glb.glb?alt=media",
-                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FLampara%20con%20codigo%202.usdz?alt=media"
+                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FLampara%20usdz.usdz?alt=media"
             },
             star: {
                 glb: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2Fglb_1739799847176_1739799847176.glb?alt=media",
-                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FPerfume%20usdz.usdz?alt=media"
+                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2Fstar.usdz?alt=media"
             }
         };
 
@@ -144,22 +144,9 @@
                 const convertedGLB = URL.createObjectURL(blob);
                 alert(`Modelo ${objectKey} corregido en milímetros.`);
 
-                // Subir a Firebase en lugar de abrir localmente
-                uploadToFirebase(blob, objectKey);
+                // Abrir el modelo corregido en Scene Viewer
+                openInSceneViewer(convertedGLB);
             }, { binary: true });
-        }
-
-        function uploadToFirebase(blob, objectKey) {
-            const storageRef = firebase.storage().ref();
-            const modelRef = storageRef.child(`convertedModels/${objectKey}.glb`);
-            modelRef.put(blob).then(snapshot => {
-                snapshot.ref.getDownloadURL().then(url => {
-                    alert(`Modelo ${objectKey} subido con éxito. Abriendo en Scene Viewer...`);
-                    openInSceneViewer(url);
-                });
-            }).catch(error => {
-                alert(`Error al subir modelo ${objectKey}: ${error.message}`);
-            });
         }
 
         function openInQuickLook(usdzUrl) {
@@ -167,18 +154,6 @@
             window.location.href = `${usdzUrl}#allowsContentScaling=0&callToAction=Ver en AR`;
         }
     </script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
-    <script>
-        const firebaseConfig = {
-            apiKey: "TU_API_KEY",
-            authDomain: "TU_AUTH_DOMAIN",
-            projectId: "vitrinea-4433b",
-            storageBucket: "vitrinea-4433b.appspot.com",
-            messagingSenderId: "TU_MESSAGING_SENDER_ID",
-            appId: "TU_APP_ID"
-        };
-        firebase.initializeApp(firebaseConfig);
-    </script>
 </body>
+
 </html>
