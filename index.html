@@ -48,7 +48,7 @@
 
     <div class="object-selection">
         <button onclick="openAR('Perfume1')">Perfume Ariana Grande</button>
-        <button onclick="openAR('Perfume2')">Lámpara</button>
+        <button onclick="openAR('Perfume2')">Lampara</button>
         <button onclick="openAR('star')">Modelo de prueba</button>
     </div>
 
@@ -72,37 +72,35 @@
         // Modelos con sus versiones GLB y USDZ
         const objects = {
             Perfume1: {
-                glb: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FPerfume%20glb.glb?alt=media",
-                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FPerfume%20usdz.usdz?alt=media"
+                glb: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FPerfume%20glb.glb?alt=media&token=7b0d95dd-9f66-49ac-8c04-9321aeb1c56b",
+                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FPerfume%20sin%20saber%20su%20altura.usdz?alt=media&token=3d19f39b-4acf-43f1-8a5a-c304d34f8d94"
             },
             Perfume2: {
-                glb: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FLampara%20glb.glb?alt=media",
-                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FLampara%20usdz.usdz?alt=media"
+                glb: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FLampara%20glb%20viendo%20su%20diferencia.glb?alt=media&token=5b34bdab-c366-4e0a-bde4-002cd113a874",
+                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FLampara%20con%20codigo%202.usdz?alt=media&token=a9f3a391-e496-471d-9737-d40d48640594"
             },
             star: {
-                glb: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2Fglb_1739799847176_1739799847176.glb?alt=media",
-                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2Fstar.usdz?alt=media"
+                glb: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2Fglb_1739799847176_1739799847176.glb?alt=media&token=32a96675-35c3-4a69-a506-d7436b1cd5b0",
+                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FPerfume%20usdz.usdz?alt=media&token=f82c0c30-2dd9-4f01-bdbb-7dca5c9fa0e4"
             }
         };
 
         function openAR(objectKey) {
-            if (!objects[objectKey]) {
-                alert("Modelo no encontrado.");
-                return;
-            }
-
             if (os === "iOS") {
                 openInQuickLook(objects[objectKey].usdz);
             } else if (os === "Android") {
-                openInSceneViewer(objects[objectKey].glb);
+                openInSceneViewer(objects[objectKey].glb, objectKey);
             } else {
                 alert("Tu dispositivo no es compatible con AR.");
             }
         }
 
-        function openInSceneViewer(modelUrl) {
-            alert("Abriendo modelo en Scene Viewer...");
-            window.location.href = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}&mode=ar_preferred`;
+        function openInSceneViewer(modelUrl, objectKey) {
+            alert("Abriendo modelo original en Scene Viewer...");
+            window.location.href = `https://arvr.google.com/scene-viewer/1.0?file=${modelUrl}&mode=ar_preferred`;
+
+            // Iniciar conversión de escala en segundo plano
+            detectAndConvertToMm(modelUrl, objectKey);
         }
 
         function detectAndConvertToMm(modelUrl, objectKey) {
@@ -110,30 +108,22 @@
 
             loader.load(modelUrl, function (gltf) {
                 const model = gltf.scene;
-                if (!model) {
-                    alert(`No se pudo cargar el modelo ${objectKey}.`);
-                    return;
-                }
-
                 const boundingBox = new THREE.Box3().setFromObject(model);
                 const size = boundingBox.getSize(new THREE.Vector3());
 
-                if (size.y === 0) {
-                    alert(`Error al obtener el tamaño del modelo ${objectKey}.`);
-                    return;
-                }
+                // Establecer una escala específica (ajústala según tus necesidades)
+                const targetHeight = 0.1; // 1 metro de altura
+                const scaleFactor = targetHeight / size.y; // Ajustar basado en la altura
 
-                const targetHeight = 0.1; // 10 cm de altura
-                const scaleFactor = targetHeight / size.y;
-                model.scale.set(scaleFactor, scaleFactor, scaleFactor);
-
+                model.scale.set(0.01, 0.01, 0.01);
                 alert(`Modelo ${objectKey} escalado a ${targetHeight} metros con factor ${scaleFactor}.`);
-
+ac
                 exportGLB(model, objectKey);
             }, undefined, function (error) {
-                alert(`Error al cargar el modelo ${objectKey}: ${error.message}`);
+                alert(`Error al cargar el modelo ${objectKey}: ${error}`);
             });
         }
+
 
         function exportGLB(model, objectKey) {
             alert(`Exportando modelo ${objectKey} escalado...`);
@@ -144,8 +134,8 @@
                 const convertedGLB = URL.createObjectURL(blob);
                 alert(`Modelo ${objectKey} corregido en milímetros.`);
 
-                // Abrir el modelo corregido en Scene Viewer
-                openInSceneViewer(convertedGLB);
+                // Volver a abrir el modelo corregido en Scene Viewer
+                openInSceneViewer(convertedGLB, objectKey);
             }, { binary: true });
         }
 
