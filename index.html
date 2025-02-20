@@ -72,16 +72,16 @@
         // Modelos con sus versiones GLB y USDZ
         const objects = {
             Perfume1: {
-                glb: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FPerfume%20glb.glb?alt=media&token=7b0d95dd-9f66-49ac-8c04-9321aeb1c56b",
-                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FPerfume%20sin%20saber%20su%20altura.usdz?alt=media&token=3d19f39b-4acf-43f1-8a5a-c304d34f8d94"
+                glb: "https://example.com/perfume.glb",
+                usdz: "https://example.com/perfume.usdz"
             },
             Perfume2: {
-                glb: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FLampara%20glb%20viendo%20su%20diferencia.glb?alt=media&token=5b34bdab-c366-4e0a-bde4-002cd113a874",
-                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FLampara%20con%20codigo%202.usdz?alt=media&token=a9f3a391-e496-471d-9737-d40d48640594"
+                glb: "https://example.com/lampara.glb",
+                usdz: "https://example.com/lampara.usdz"
             },
             star: {
-                glb: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2Fglb_1739799847176_1739799847176.glb?alt=media&token=32a96675-35c3-4a69-a506-d7436b1cd5b0",
-                usdz: "https://firebasestorage.googleapis.com/v0/b/vitrinea-4433b.appspot.com/o/vitrineaar%2F3D_Objects%2FPerfume%20usdz.usdz?alt=media&token=f82c0c30-2dd9-4f01-bdbb-7dca5c9fa0e4"
+                glb: "https://example.com/star.glb",
+                usdz: "https://example.com/star.usdz"
             }
         };
 
@@ -107,7 +107,7 @@
 
         function openInQuickLook(usdzUrl) {
             alert("Abriendo en Quick Look...");
-            window.location.href = `${usdzUrl}#allowsContentScaling=0&callToAction=Ver en AR`;
+            window.location.href = `${usdzUrl}?allowsContentScaling=0&autostart=1`;
         }
     </script>
 </body>
